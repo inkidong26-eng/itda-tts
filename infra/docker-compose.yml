@@ -6,4 +6,10 @@ services:
     env_file:
       - path: ../services/api/.env
         required: false
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////app/data/itda.db
+      VOICES_JSON: /app/voices.json
+    volumes:
+      - ../services/api/data:/app/data
+      - ../services/tts/voices.json:/app/voices.json:ro
     restart: unless-stopped

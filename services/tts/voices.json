@@ -1,0 +1,20 @@
+[
+  {
+    "id": "v20f1", "name": "봄볕", "ageGroup": "20s", "gender": "f",
+    "description": "밝고 또렷한 20대 여성, 말이 조금 빠름",
+    "tags": ["밝음", "또렷함", "경쾌함"],
+    "approved": true, "previewUrl": null, "waveUrl": null, "card": null
+  },
+  {
+    "id": "v50m1", "name": "소나무", "ageGroup": "50s", "gender": "m",
+    "description": "깊고 약간 거친 저음의 50대 남성, 느긋하고 정감 있는 말투",
+    "tags": ["깊음", "느긋함", "정감"],
+    "approved": true, "previewUrl": null, "waveUrl": null, "card": null
+  },
+  {
+    "id": "v70f1", "name": "꽃자리", "ageGroup": "70s", "gender": "f",
+    "description": "부드럽고 가는 목소리의 70대 여성 어르신, 느리고 따뜻함",
+    "tags": ["부드러움", "따뜻함", "느림"],
+    "approved": true, "previewUrl": null, "waveUrl": null, "card": null
+  }
+]

@@ -22,7 +22,9 @@ npm install
 cd ../../services/api
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-dev.txt
+copy .env.example .env
 ```
+`.env` 의 `APP_SECRET` 는 아무 긴 글자로 바꿔 두세요 (비어 있으면 서버가 켜지지 않아요).
 
 ## 실행 (창 2개)
 웹앱 — 창 1:
@@ -35,9 +37,10 @@ npm run dev
 API — 창 2:
 ```powershell
 cd services/api
-.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000 --env-file .env
 ```
 → http://localhost:8000/health → `{"ok":true}`
+→ http://localhost:8000/docs → API 시험 화면 (가입 → 토큰 → 추천 목소리)
 
 ## 테스트
 ```powershell
