@@ -5,3 +5,8 @@ __pycache__/
 *.pyc
 assets/voices/**/*.wav
 .DS_Store
+.venv/
+dist/
+.pytest_cache/
+*.db
+services/api/data/

@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* 기본 글자 18px 이상 (규칙) */
+html {
+  font-size: 18px;
+}
