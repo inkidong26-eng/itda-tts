@@ -6,11 +6,13 @@
 
 import asyncio
 import logging
+import time
 
 import httpx
 
 log = logging.getLogger("itda.tts")
 HEALTH_EVERY_S = 10
+WARMUP_EVERY_S = 60  # 누가 몇 번을 눌러도 GPU 깨우기는 1분에 한 번만
 
 
 class NoServer(Exception):
@@ -37,6 +39,7 @@ class TtsPool:
         self.request_timeout_s = request_timeout_s
         self._client = httpx.AsyncClient(transport=transport, headers={"X-Key": key})
         self._health_task: asyncio.Task | None = None
+        self._last_warmup = 0.0
 
     async def start(self) -> None:
         if self.endpoints:
@@ -76,9 +79,15 @@ class TtsPool:
                     timeout=httpx.Timeout(self.request_timeout_s, connect=1.5))
                 res.raise_for_status()
                 return res.content
+            except httpx.HTTPStatusError as err:
+                # 4xx 는 이 요청만의 문제 (글이 너무 길다 등) → 서버는 계속 쓴다. 5xx 만 고장으로 본다
+                if err.response.status_code >= 500:
+                    ep.healthy = False
+                    log.warning("tts server error %d, marked down", err.response.status_code)
+                raise
             except httpx.HTTPError:
-                ep.healthy = False  # 다음 health 확인까지 이 서버는 빼고 보낸다
-                log.warning("tts server failed, marked down")
+                ep.healthy = False  # 연결 실패·시간 초과: 다음 health 확인까지 이 서버는 빼고 보낸다
+                log.warning("tts server unreachable, marked down")
                 raise
             finally:
                 ep.slots.release()
@@ -94,6 +103,14 @@ class TtsPool:
                 ep.healthy = False
         await asyncio.gather(*(one(e) for e in self.endpoints))
 
+    def warmup_due(self) -> bool:
+        """마지막 깨우기에서 1분이 지났으면 True (그리고 지금을 기록)"""
+        now = time.monotonic()
+        if now - self._last_warmup < WARMUP_EVERY_S:
+            return False
+        self._last_warmup = now
+        return True
+
     async def warmup(self) -> None:
         """살아 있는 서버를 미리 깨운다. 실패해도 조용히."""
         async def one(ep: Endpoint) -> None:
@@ -105,5 +122,8 @@ class TtsPool:
 
     async def _health_loop(self) -> None:
         while True:
-            await self.check_health()
+            try:
+                await self.check_health()
+            except Exception as err:  # 한 번의 뜻밖의 오류로 확인이 영영 멈추지 않게
+                log.warning("health check error: %s", type(err).__name__)
             await asyncio.sleep(HEALTH_EVERY_S)

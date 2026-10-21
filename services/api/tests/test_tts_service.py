@@ -80,12 +80,46 @@ def test_cleanup_keeps_pinned_and_new(tmp_path):
 
 
 def test_cache_key_changes_with_every_part():
-    base = cache_key("v1", "calm", 2, 0, 1.0, "안녕")
-    assert base != cache_key("v2", "calm", 2, 0, 1.0, "안녕")
-    assert base != cache_key("v1", "joy", 2, 0, 1.0, "안녕")
-    assert base != cache_key("v1", "calm", 2, 0, 1.2, "안녕")
-    assert base != cache_key("v1", "calm", 2, 0, 1.0, "안녕하세요")
+    base = cache_key("s", "v1", "calm", 2, 0, 1.0, "안녕")
+    assert base != cache_key("s", "v2", "calm", 2, 0, 1.0, "안녕")
+    assert base != cache_key("s", "v1", "joy", 2, 0, 1.0, "안녕")
+    assert base != cache_key("s", "v1", "calm", 2, 0, 1.2, "안녕")
+    assert base != cache_key("s", "v1", "calm", 2, 0, 1.0, "안녕하세요")
     assert len(base) == 40
+
+
+def test_cache_key_needs_server_secret():
+    # 문장을 알아도 서버 비밀키가 다르면 같은 주소를 만들 수 없다
+    import hashlib
+    plain = hashlib.sha1("v1|calm|2|0|1.00|안녕".encode()).hexdigest()
+    assert cache_key("s", "v1", "calm", 2, 0, 1.0, "안녕") != plain
+    assert cache_key("s", "v1", "calm", 2, 0, 1.0, "안녕") != cache_key("t", "v1", "calm", 2, 0, 1.0, "안녕")
+
+
+def test_bad_request_does_not_take_server_down(tmp_path):
+    async def run():
+        service, db, _ = await make_service(tmp_path, FakeGpu(fail=True, status=422))
+        res = await service.speak("a", payload("x"), "x")
+        healthy = service.pool.endpoints[0].healthy
+        await service.pool.close()
+        await db.close()
+        return res, healthy
+
+    res, healthy = asyncio.run(run())
+    assert res["fallback"] is True   # 이 문장은 기본 음성으로
+    assert healthy is True           # 다른 사람 요청은 계속 GPU로
+
+
+def test_server_error_takes_server_down(tmp_path):
+    async def run():
+        service, db, _ = await make_service(tmp_path, FakeGpu(fail=True, status=500))
+        await service.speak("a", payload("x"), "x")
+        healthy = service.pool.endpoints[0].healthy
+        await service.pool.close()
+        await db.close()
+        return healthy
+
+    assert asyncio.run(run()) is False
 
 
 def test_storage_refuses_paths_outside_folder(tmp_path):

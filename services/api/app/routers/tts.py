@@ -49,7 +49,7 @@ async def tts(body: TtsIn, request: Request, user: User = Depends(current_user))
 
     # 감정·속도 반영은 T13 → 지금은 모두 평온·보통 속도로 만들고, 캐시 키도 같게 맞춘다
     emotion, intensity, tremor, speed = "calm", 2, 0, 1.0
-    key = cache_key(body.voiceId, emotion, intensity, tremor, speed, spoken)
+    key = cache_key(app.state.settings.app_secret, body.voiceId, emotion, intensity, tremor, speed, spoken)
     payload = {"voiceId": body.voiceId, "emotion": emotion, "intensity": intensity, "tremor": tremor,
                "text": spoken, "seed": 1}
     result = await app.state.tts.speak(key, payload, spoken)
@@ -66,7 +66,7 @@ async def warmup(request: Request) -> dict:
     if not app.state.limiter.allow(f"warmup:{client_ip(request)}", 10):
         return {"state": app.state.tts.pool.state}
     pool = app.state.tts.pool
-    if pool.state != "off":
+    if pool.state != "off" and pool.warmup_due():
         await pool.check_health()
         task = asyncio.create_task(pool.warmup())  # 기다리지 않는다
         _background.add(task)

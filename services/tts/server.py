@@ -56,7 +56,7 @@ class SynthesizeRequest(BaseModel):
     # T02 는 목소리 설계(design)만. 감정·복제 방식은 T03 결정 후 추가
     mode: Literal["design"] = "design"
     description: str = Field(min_length=1, max_length=500)
-    text: str = Field(min_length=1, max_length=200)
+    text: str = Field(min_length=1, max_length=400)  # 화면 100자 → 읽기 변환 뒤 최대 약 3배
     seed: int = 1
 
 

@@ -59,7 +59,16 @@ function indexedDbStore(): HistoryStore {
       const all = await done((await tx("readonly")).getAll() as IDBRequest<Message[]>);
       return all.sort((a, b) => a.at - b.at).slice(-MAX_MESSAGES);
     },
-    async put(m) { await done((await tx("readwrite")).put(m)); },
+    async put(m) {
+      const store = await tx("readwrite");
+      await done(store.put(m));
+      // 폰 저장 공간도 최근 MAX_MESSAGES 개까지만 (오래된 것부터 지움)
+      if ((await done(store.count())) > MAX_MESSAGES) {
+        const all = await done(store.getAll() as IDBRequest<Message[]>);
+        const old = all.sort((a, b) => a.at - b.at).slice(0, all.length - MAX_MESSAGES);
+        await Promise.all(old.map((x) => done(store.delete(x.id))));
+      }
+    },
     async clear() { await done((await tx("readwrite")).clear()); },
   };
 }

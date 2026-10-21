@@ -2,7 +2,8 @@
 // - AudioContext 하나 + 재생 큐 (연속으로 보낸 문장이 겹치지 않게)
 // - 0.1초마다 실제 소리 크기(level) — 화면 막대·진동·테두리 빛은 이 값으로만 움직인다 (가짜 표시 금지)
 // - 서버 음성이 없거나(fallback) 파일이 깨지면 폰 기본 음성(speechSynthesis ko-KR)으로 읽는다 (무음 금지)
-// - 시작하고 1초 동안 소리 크기가 계속 0이면 "무음 의심"
+// - 시작하고 1초 동안 소리 크기가 계속 0이면 "무음 의심" → 그 파일은 멈추고 기본 음성으로 읽는다
+// - 어떤 경우에도 큐가 멈추지 않게: 소리 장치가 멈추거나(아이폰 통화·잠금) 끝 신호가 안 와도 시간 제한으로 다음으로 넘어간다
 
 export type Source = "server" | "fallback";
 
@@ -47,6 +48,17 @@ const SILENCE_CHECK_MS = 1000;   // TTS 앞부분 무음(최대 0.4초 관찰)�
 const SILENT_RMS = 0.003;
 const SPEECH_START_TIMEOUT_MS = 4000;
 const FETCH_TIMEOUT_MS = 8000;
+const DECODE_TIMEOUT_MS = 5000;
+const SUSPEND_LIMIT_MS = 1500;     // 소리 장치가 이만큼 멈춰 있으면 기본 음성으로
+const END_GRACE_MS = 3000;         // 파일 길이보다 이만큼 지나도 끝 신호가 없으면 끝난 것으로
+const SPEECH_MS_PER_CHAR = 250;    // 기본 음성이 끝나야 할 시간 = 글자 수 × 0.25초 + 3초
+
+function withTimeout<T>(work: Promise<T>, ms: number, reason: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(reason)), ms);
+    work.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
 
 let counter = 0;
 const newId = () => `p${Date.now().toString(36)}${(counter++).toString(36)}`;
@@ -59,6 +71,8 @@ export function createPlayer(deps: PlayerDeps) {
   let running = false;
   let stopCurrent: (() => void) | null = null;
   let generation = 0; // stopAll() 이후 이전 재생이 남긴 신호를 무시하기 위해
+  let speaking: Utterance | null = null; // 크롬이 말하는 도중 이 객체를 치워 버리지 않게 붙잡아 둔다
+  let warmed = false;
 
   const emit = (e: PlayerEvent) => listeners.forEach((l) => l(e));
 
@@ -88,7 +102,7 @@ export function createPlayer(deps: PlayerDeps) {
     const audio = context();
     if (!audio || !analyser) throw new Error("no-audio");
     const data = await deps.fetchAudio(item.url as string);
-    const buffer = await audio.decodeAudioData(data);
+    const buffer = await withTimeout(audio.decodeAudioData(data), DECODE_TIMEOUT_MS, "decode-timeout");
     if (gen !== generation) {
       emit({ type: "end", id: item.id, source: "server" }); // 멈춤 버튼으로 취소됨
       return;
@@ -96,22 +110,47 @@ export function createPlayer(deps: PlayerDeps) {
     const node = audio.createBufferSource();
     node.buffer = buffer;
     node.connect(analyser);
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       const startedAt = audio.currentTime;
+      const wallStart = performance.now();
       let heard = false;
-      let warned = false;
+      let settled = false; // 끝·중단은 한 번만
+      let suspendedAt: number | null = null;
+      // 이 파일로는 소리를 낼 수 없다 → 멈추고 실패로 돌려 기본 음성으로 넘긴다
+      const abort = (reason: string) => {
+        if (settled) return;
+        settled = true;
+        clearInterval(timer);
+        node.onended = null;
+        try { node.stop(); } catch { /* 이미 멈춤 */ }
+        stopCurrent = null;
+        reject(new Error(reason));
+      };
       const timer = setInterval(() => {
+        const now = performance.now();
+        if (audio.state !== "running") {
+          // 아이폰: 통화·화면 잠금·앱 전환으로 소리 장치가 멈춤 → 다시 켜 보고, 안 되면 기본 음성으로
+          void audio.resume().catch(() => undefined);
+          suspendedAt ??= now;
+          if (now - suspendedAt > SUSPEND_LIMIT_MS) return abort("suspended");
+          return;
+        }
+        suspendedAt = null;
         const rms = measure();
         if (rms > SILENT_RMS) heard = true;
         const elapsed = audio.currentTime - startedAt;
-        if (!heard && !warned && elapsed * 1000 >= SILENCE_CHECK_MS) {
-          warned = true;
+        if (!heard && elapsed * 1000 >= SILENCE_CHECK_MS) {
           emit({ type: "silence", id: item.id });
+          return abort("silent"); // 앱이 내보내는 소리가 0 = 파일이 비어 있음 → 기본 음성으로
         }
+        if (now - wallStart > buffer.duration * 1000 + END_GRACE_MS) return finish(); // 끝 신호가 오지 않은 경우
         emit({ type: "level", id: item.id, level: Math.min(1, rms * 5), progress: Math.min(1, elapsed / buffer.duration) });
       }, TICK_MS);
       const finish = () => {
+        if (settled) return;
+        settled = true;
         clearInterval(timer);
+        node.onended = null;
         stopCurrent = null;
         emit({ type: "end", id: item.id, source: "server" });
         resolve();
@@ -138,12 +177,16 @@ export function createPlayer(deps: PlayerDeps) {
       u.lang = "ko-KR";
       const korean = speech.getVoices().find((v) => v.lang?.toLowerCase().startsWith("ko"));
       if (korean) u.voice = korean;
+      speaking = u;
       let started = false;
       let done = false;
+      let endWatchdog: ReturnType<typeof setTimeout> | undefined;
       const end = (event: PlayerEvent) => {
         if (done) return;
         done = true;
         clearTimeout(watchdog);
+        clearTimeout(endWatchdog);
+        if (speaking === u) speaking = null;
         stopCurrent = null;
         emit(event);
         resolve();
@@ -152,7 +195,15 @@ export function createPlayer(deps: PlayerDeps) {
       const watchdog = setTimeout(() => {
         if (!started) { speech.cancel(); end({ type: "error", id: item.id, reason: "speech-timeout" }); }
       }, deps.speechStartTimeoutMs ?? SPEECH_START_TIMEOUT_MS);
-      u.onstart = () => { started = true; emit({ type: "start", id: item.id, source: "fallback" }); };
+      u.onstart = () => {
+        started = true;
+        emit({ type: "start", id: item.id, source: "fallback" });
+        // 일부 안드로이드 크롬은 끝 신호(onend)를 빠뜨린다 → 넉넉한 시간이 지나면 끝난 것으로 보고 다음으로
+        endWatchdog = setTimeout(() => {
+          speech.cancel();
+          end({ type: "end", id: item.id, source: "fallback" });
+        }, END_GRACE_MS + item.text.length * SPEECH_MS_PER_CHAR);
+      };
       u.onboundary = (e) => emit({ type: "boundary", id: item.id, charIndex: e.charIndex });
       u.onend = () => end({ type: "end", id: item.id, source: "fallback" });
       u.onerror = () => end({ type: "error", id: item.id, reason: "speech-error" });
@@ -168,7 +219,10 @@ export function createPlayer(deps: PlayerDeps) {
         await playServer(item, gen);
         return;
       } catch {
-        if (gen !== generation) return;
+        if (gen !== generation) {
+          emit({ type: "end", id: item.id, source: "server" }); // 멈춤 버튼으로 취소됨 (기다리는 화면이 남지 않게)
+          return;
+        }
         if (!item.text) {
           emit({ type: "error", id: item.id, reason: "audio-error" });
           return;
@@ -218,7 +272,8 @@ export function createPlayer(deps: PlayerDeps) {
         if (session) session.type = "playback"; // 아이폰 무음 스위치가 켜져 있어도 소리가 나게 (지원 기기만)
       } catch { /* 지원 안 함 */ }
       try {
-        if (deps.speech) {
+        if (deps.speech && !warmed) {
+          warmed = true; // 기본 음성 깨우기는 처음 한 번만 (재생 중에 끼어들지 않게)
           const warm = deps.makeUtterance(" ");
           warm.volume = 0;
           deps.speech.speak(warm);

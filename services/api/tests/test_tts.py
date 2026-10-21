@@ -121,6 +121,21 @@ def test_warmup_and_status(fast):
     assert set(status) == {"state", "queue", "avgMs"} and status["state"] == "ready"
 
 
+def test_warmup_runs_at_most_once_a_minute(fast):
+    gpu = FakeGpu()
+    use_gpu(fast, gpu)
+    for _ in range(5):
+        assert fast.post("/tts/warmup").json() == {"state": "ready"}
+    time.sleep(0.2)
+    assert gpu.warmups == 1  # 여러 번 눌러도 GPU 는 한 번만 깨운다
+
+
+def test_long_spoken_text_is_allowed_by_gpu_server_limit():
+    # 화면 100자 → 읽기 변환 뒤에도 GPU 서버 한도(400자) 안
+    from app.text_normalize import normalize
+    assert len(normalize("9% " * 33)) <= 400
+
+
 def test_warmup_reports_warming_when_gpu_down(fast):
     use_gpu(fast, FakeGpu(down=True))
     assert fast.post("/tts/warmup").json() == {"state": "warming"}

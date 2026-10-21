@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -17,11 +18,15 @@ from app.tts_service import TtsService
 from app.voice_catalog import load_voices_file
 
 CLEANUP_EVERY_S = 30 * 60
+log = logging.getLogger("itda.api")
 
 
 async def _cleanup_loop(cache: AudioCache) -> None:
     while True:
-        await cache.cleanup()  # 24시간 지난 음성 파일 지우기 (즐겨찾기 미리 생성분 제외)
+        try:
+            await cache.cleanup()  # 24시간 지난 음성 파일 지우기 (즐겨찾기 미리 생성분 제외)
+        except Exception as err:  # 한 번 실패해도 다음 정리는 계속 (24시간 보관 약속)
+            log.warning("cache cleanup error: %s", type(err).__name__)
         await asyncio.sleep(CLEANUP_EVERY_S)
 
 

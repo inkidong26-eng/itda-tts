@@ -18,9 +18,11 @@ def tiny_wav(ms: int = 500, rate: int = 24000) -> bytes:
 
 
 class FakeGpu:
-    def __init__(self, delay_s: float = 0.0, fail: bool = False, down: bool = False) -> None:
+    def __init__(self, delay_s: float = 0.0, fail: bool = False, down: bool = False, status: int = 500) -> None:
         self.delay_s = delay_s
         self.fail = fail
+        self.status = status  # fail=True 일 때 돌려줄 오류 번호
+        self.warmups = 0
         self.down = down
         self.calls: list[dict] = []
         self.keys: list[str] = []
@@ -33,13 +35,14 @@ class FakeGpu:
         if path == "/health":
             return httpx.Response(200, json={"ready": True, "gpu": "fake", "inFlight": 0})
         if path == "/warmup":
+            self.warmups += 1
             return httpx.Response(200, json={"ready": True, "ms": 1})
         if path == "/synthesize":
             import json
             self.calls.append(json.loads(request.content))
             await asyncio.sleep(self.delay_s)
             if self.fail:
-                return httpx.Response(500)
+                return httpx.Response(self.status)
             return httpx.Response(200, content=tiny_wav(), headers={"content-type": "audio/wav"})
         return httpx.Response(404)
 

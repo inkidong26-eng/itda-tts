@@ -1,15 +1,17 @@
 """같은 문장 캐시 (07 문서 5·7절): 키 만들기, 찾기, 24시간 정리 (즐겨찾기 미리 생성분 pinned 제외)."""
 
 import hashlib
+import hmac
 from datetime import datetime, timedelta, timezone
 
 from app.db import Database
 from app.storage import AudioStorage
 
 
-def cache_key(voice_id: str, emotion: str, intensity: int, tremor: int, speed: float, text: str) -> str:
+def cache_key(secret: str, voice_id: str, emotion: str, intensity: int, tremor: int, speed: float, text: str) -> str:
+    """서버 비밀키로 서명한 키: 문장을 알아도 비밀키 없이는 파일 주소를 만들 수 없다 (누가 무슨 말을 했는지 추측 방지)"""
     raw = f"{voice_id}|{emotion}|{intensity}|{tremor}|{speed:.2f}|{text}"
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+    return hmac.new(secret.encode("utf-8"), raw.encode("utf-8"), hashlib.sha1).hexdigest()
 
 
 class AudioCache:

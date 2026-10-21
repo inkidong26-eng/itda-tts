@@ -73,7 +73,7 @@ def test_too_long_text_is_rejected(client):
     res = client.post(
         "/synthesize",
         headers={"X-Key": KEY},
-        json={"description": "a", "text": "가" * 201},
+        json={"description": "a", "text": "가" * 401},
     )
     assert res.status_code == 422
 

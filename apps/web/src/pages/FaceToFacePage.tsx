@@ -32,7 +32,11 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
 
   useEffect(() => {
     let alive = true;
-    void history.list().then((list) => { if (alive) setMessages(list); });
+    // 저장된 기록을 불러오는 사이에 보낸 새 메시지가 지워지지 않게 합친다
+    void history.list().then((saved) => {
+      if (!alive) return;
+      setMessages((cur) => [...saved.filter((m) => !cur.some((c) => c.id === m.id)), ...cur].sort((a, b) => a.at - b.at));
+    });
     return () => { alive = false; };
   }, []);
 
@@ -43,7 +47,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
       if (!prev) return cur;
       const next = { ...prev };
       if (e.type === "start") next.state = "playing";
-      if (e.type === "fallback") next.fallback = true;
+      if (e.type === "fallback") { next.fallback = true; next.silent = false; } // 빈 파일 → 기본 음성이 이어서 읽는다
       if (e.type === "silence") next.silent = true;
       if (e.type === "end") next.state = "done";
       if (e.type === "error") next.state = "failed";
