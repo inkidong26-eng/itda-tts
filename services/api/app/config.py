@@ -23,6 +23,7 @@ class Settings:
     tts_start_timeout_s: float
     tts_total_timeout_s: float
     tts_limit_per_min: int
+    web_base: str
     cache_hours: int = 24
     tts_request_timeout_s: float = 30
     token_days: int = 30
@@ -49,4 +50,5 @@ def load_settings() -> Settings:
         tts_start_timeout_s=int(os.getenv("TTS_START_TIMEOUT_MS", "2500")) / 1000,
         tts_total_timeout_s=int(os.getenv("TTS_TOTAL_TIMEOUT_MS", "4000")) / 1000,
         tts_limit_per_min=int(os.getenv("TTS_LIMIT_PER_MIN", "20")),
+        web_base=os.getenv("WEB_BASE", "http://localhost:5173").rstrip("/"),  # 통화 참여 링크 주소
     )

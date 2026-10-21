@@ -8,10 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.cache import AudioCache
+from app.calls import CallManager
 from app.config import load_settings
 from app.db import Database
 from app.rate_limit import RateLimiter
-from app.routers import auth, tts, voices
+from app.routers import auth, calls, tts, voices
 from app.storage import AudioStorage
 from app.tts_client import TtsPool
 from app.tts_service import TtsService
@@ -46,12 +47,14 @@ def create_app() -> FastAPI:
         app.state.db = db
         app.state.limiter = RateLimiter()
         app.state.tts = TtsService(pool, cache, settings.tts_start_timeout_s, settings.tts_total_timeout_s)
+        app.state.calls = CallManager()
         await pool.start()
-        cleanup = asyncio.create_task(_cleanup_loop(cache))
+        background = [asyncio.create_task(_cleanup_loop(cache)), asyncio.create_task(app.state.calls.run_sweeper())]
         yield
-        cleanup.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await cleanup
+        for task in background:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
         await app.state.tts.pool.close()
         await db.close()
 
@@ -65,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(voices.router)
     app.include_router(tts.router)
+    app.include_router(calls.router)
     # 개발용 음성 파일 제공. 배포(T20)에서는 Caddy 가 /a/* 를 직접 제공한다
     app.mount("/a", StaticFiles(directory=storage.directory), name="audio")
 

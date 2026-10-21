@@ -143,6 +143,7 @@ TTS_TOTAL_TIMEOUT_MS=4000
 EMOTION_LLM_ENABLED=false
 EMOTION_LLM_API_KEY=
 STT_SERVER_ENABLED=false
+WEB_BASE=https://itda.gyeot.ai.kr      # 통화 참여 링크(QR) 주소
 # apps/web/.env
 VITE_API_BASE=https://api.itda.gyeot.ai.kr
 ```
