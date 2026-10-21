@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, signup } from "./api/client";
 import { AgeGenderPage } from "./pages/AgeGenderPage";
+import { FaceToFacePage } from "./pages/FaceToFacePage";
 import { HomePage, SoonPage } from "./pages/HomePage";
 import { NamePage } from "./pages/NamePage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { StartPage } from "./pages/StartPage";
 import { VoicePage } from "./pages/VoicePage";
 import { type Session, clearSession, loadSession, saveSession } from "./storage/local";
+import { FONT_STEPS, type ViewSettings, loadView, saveView } from "./storage/settings";
 
 type View =
   | { name: "start" }
@@ -13,6 +16,8 @@ type View =
   | { name: "ageGender" }
   | { name: "voice" }
   | { name: "home" }
+  | { name: "face" }
+  | { name: "settings" }
   | { name: "soon"; what: string };
 
 function firstView(session: Session | null): View {
@@ -25,6 +30,17 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(loadSession);
   const [view, setView] = useState<View>(() => firstView(loadSession()));
   const [draftName, setDraftName] = useState("");
+  const [viewSettings, setViewSettings] = useState<ViewSettings>(loadView);
+
+  // 글자 크기는 앱 전체에 적용 (기본 18px 기준)
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${18 * FONT_STEPS[viewSettings.font].scale}px`;
+  }, [viewSettings.font]);
+
+  const changeView = (v: ViewSettings) => {
+    saveView(v);
+    setViewSettings(v);
+  };
 
   const keep = (next: Session) => {
     saveSession(next);
@@ -67,7 +83,18 @@ export default function App() {
       );
     case "home":
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
-      return <HomePage session={session} onSoon={(what) => setView({ name: "soon", what })} />;
+      return (
+        <HomePage session={session} onSoon={(what) => setView(
+          what === "마주보고 대화" ? { name: "face" } : what === "설정" ? { name: "settings" } : { name: "soon", what })} />
+      );
+    case "face":
+      if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
+      return (
+        <FaceToFacePage session={session} view={viewSettings} onView={changeView}
+          onHome={() => setView({ name: "home" })} onAuthLost={restart} />
+      );
+    case "settings":
+      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} />;
     case "soon":
       return <SoonPage what={view.what} onHome={() => setView({ name: "home" })} />;
   }

@@ -1,0 +1,51 @@
+// S9 설정 (일부). 지금은 글자 크기와 대화 기록 지우기. 목소리 바꾸기·속도·진동 등은 다음 작업에서.
+import { useState } from "react";
+import { Button, Notice, Screen } from "../components/ui";
+import { history } from "../storage/history";
+import { FONT_STEPS, type ViewSettings } from "../storage/settings";
+
+export function SettingsPage({ view, onView, onHome }: {
+  view: ViewSettings;
+  onView: (v: ViewSettings) => void;
+  onHome: () => void;
+}) {
+  const [confirm, setConfirm] = useState(false);
+  const [cleared, setCleared] = useState(false);
+
+  const clear = async () => {
+    await history.clear();
+    setConfirm(false);
+    setCleared(true);
+  };
+
+  return (
+    <Screen title="⚙️ 설정" footer={<Button onClick={onHome}>홈으로</Button>}>
+      <fieldset>
+        <legend className="mb-2 font-semibold">글자 크기</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {FONT_STEPS.map((f, i) => (
+            <Button key={f.label} variant="choice" selected={view.font === i}
+              onClick={() => onView({ ...view, font: i as 0 | 1 | 2 })}>{f.label}</Button>
+          ))}
+        </div>
+      </fieldset>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-semibold">대화 기록</h2>
+        <p className="text-muted">대화 기록은 이 폰에만 저장돼요. 서버에는 남지 않아요.</p>
+        {!confirm ? (
+          <Button variant="secondary" onClick={() => { setConfirm(true); setCleared(false); }}>🗑️ 대화 기록 지우기</Button>
+        ) : (
+          <>
+            <Notice kind="error">이 폰의 대화 기록을 모두 지울까요? 되돌릴 수 없어요.</Notice>
+            <Button onClick={() => void clear()}>네, 지울게요</Button>
+            <Button variant="secondary" onClick={() => setConfirm(false)}>아니요</Button>
+          </>
+        )}
+        {cleared && <Notice kind="info">✅ 대화 기록을 지웠어요</Notice>}
+      </section>
+
+      <p className="text-muted">🛠️ 목소리 바꾸기, 말하기 속도, 진동·테두리 빛 설정은 준비 중이에요.</p>
+    </Screen>
+  );
+}
