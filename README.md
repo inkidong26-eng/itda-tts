@@ -10,7 +10,7 @@
 |---|---|
 | `apps/web` | 웹앱 (React + TypeScript + Vite + Tailwind) |
 | `services/api` | API 서버 (FastAPI) |
-| `services/tts` | 음성 생성 서버 (GPU, T02에서 작성) |
+| `services/tts` | 음성 생성 서버 (GPU, Qwen3-TTS) — 실행 방법은 services/tts/README.md |
 | `infra` | Docker 실행 설정 |
 
 ## 처음 한 번 준비
