@@ -127,3 +127,24 @@ HTML(open("/kaggle/working/t03_out/spike_report.html", encoding="utf-8").read())
 | `scripts/spike_report.py` | 보고서 HTML |
 
 GPU 없이 흐름만 확인: `.venv\Scripts\python scripts\spike.py --fake --out t03_fake`
+
+## D. RTX 4090 속도 측정 (임대 GPU, 약 30분 · 천 원 안팎)
+T03 에서 Kaggle T4 는 한 문장 10초 이상이었다. 행사용 4090 의 실제 속도를 재서 방향을 정한다.
+
+1. 임대 업체(예: RunPod)에서 **RTX 4090 1대**, **PyTorch 템플릿**으로 서버를 켠다.
+2. 업체 화면의 **Jupyter** 를 열고, 새 노트북에 아래를 붙여 넣어 실행:
+
+```python
+!rm -rf itda-tts && git clone -q https://github.com/inkidong26-eng/itda-tts.git
+!pip install -q -r itda-tts/services/tts/requirements-gpu.txt
+!python itda-tts/services/tts/scripts/spike.py --out /workspace/t03_4090 --voices v20f1 --steps split,speed
+```
+
+3. 끝나면 결과 보기:
+```python
+import json
+d = json.load(open("/workspace/t03_4090/results.json", encoding="utf-8"))
+print(json.dumps({k: d["summary"].get(k) for k in ("gpu", "speed", "throughput", "errors")}, ensure_ascii=False, indent=1))
+```
+
+4. **⚠️ 다 쓰면 업체 화면에서 서버를 꼭 끄고(Stop) 지우기(Terminate). 켜 두면 계속 요금이 나간다.**
