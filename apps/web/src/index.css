@@ -1,6 +1,24 @@
 @import "tailwindcss";
 
+/* ITDA 색 (02 문서). 글자색은 대비 4.5:1 이상인 진한 색만 쓴다 */
+@theme {
+  --color-brand: #1a9a9a;
+  --color-brand-dark: #0f6e6e;
+  --color-navy: #1e3a8a;
+  --color-accent: #f08a4b;
+  --color-ink: #111827;
+  --color-muted: #4b5563;
+}
+
 /* 기본 글자 18px 이상 (규칙) */
 html {
   font-size: 18px;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  /* 한글은 단어 중간에서 줄이 바뀌지 않게 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }

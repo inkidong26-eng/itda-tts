@@ -1,0 +1,84 @@
+// API 서버 호출 (07 문서 5절). 모든 요청에 제한 시간을 둔다.
+
+const BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "/api";
+const TIMEOUT_MS = 8000;
+
+export type VoiceCard = {
+  easy?: string;
+  impression?: string;
+  scales?: { pitch?: number; speed?: number; mood?: number; strength?: number };
+  suits?: string;
+};
+
+export type Voice = {
+  id: string;
+  name: string;
+  ageGroup: string;
+  gender: "m" | "f";
+  description: string;
+  tags: string[];
+  previewUrl: string | null;
+  waveUrl: string | null;
+  card: VoiceCard | null;
+};
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function messageFor(status: number): string {
+  if (status === 429) return "잠시 후 다시 보내 주세요";
+  if (status === 401) return "처음부터 다시 시작해 주세요";
+  if (status === 0) return "인터넷 연결을 확인해 주세요";
+  return "문제가 생겼어요. 다시 해 주세요";
+}
+
+async function request<T>(method: string, path: string, token?: string, body?: unknown): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: {
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new ApiError(res.status, messageFor(res.status));
+    return (await res.json()) as T;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(0, messageFor(0));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function signup(name: string, ageGroup: string, gender: string) {
+  return request<{ userId: string; token: string }>("POST", "/auth/guest", undefined, {
+    name, ageGroup, gender, consent: true,
+  });
+}
+
+export function recommendVoices(token: string, ageGroup: string, gender: string) {
+  return request<Voice[]>("GET", `/voices/recommend?ageGroup=${ageGroup}&gender=${gender}`, token);
+}
+
+export function listVoices(token: string, ageGroup: string) {
+  return request<Voice[]>("GET", `/voices?ageGroup=${ageGroup}`, token);
+}
+
+export function chooseVoice(token: string, voiceId: string) {
+  return request<{ ok: boolean }>("PATCH", "/me", token, { voiceId });
+}
+
+/** 음성 서버 미리 깨우기. 실패해도 앱은 계속 (아직 /tts/warmup 이 없으면 무시) */
+export function warmup(): void {
+  request("POST", "/tts/warmup").catch(() => undefined);
+}
