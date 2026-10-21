@@ -19,6 +19,8 @@ from spike_audio import cosine, duration, join_with_silence, trim_leading  # noq
 from spike_data import (BREATH_SENTENCES, CONSISTENCY_SENTENCES, EMOTIONS, NO_BREATH_HINT,  # noqa: E402
                         SPLIT_TEXTS, TEST_SENTENCE, URGENT_INSTRUCT, URGENT_TEXT, VOICES)
 
+# GPU 오류가 나면 그 뒤가 모두 멈추므로, 위험한 속도 측정은 맨 뒤에
+STEPS = ["compare_methods", "consistency", "breath", "split", "urgent", "speed"]
 CANDIDATES = 3  # 감정마다 만들어 보고 가장 같은 사람 같은 것을 고르는 후보 수
 
 
@@ -112,13 +114,11 @@ class Spike:
         variants = {
             "설계 1.7B (방식 B)": lambda: self.e.design([TEST_SENTENCE], [f"{VOICES[v]}. 차분하게"], 3),
             "복제 1.7B 기준문장 포함": lambda: self.e.clone([TEST_SENTENCE], self.e.prompt(wav, sr, ref_text), 3),
-            "복제 1.7B 목소리 특징만": lambda: self.e.clone([TEST_SENTENCE], self.e.prompt(wav, sr, None), 3),
             "복제 0.6B 기준문장 포함": lambda: self.e.clone(
                 [TEST_SENTENCE], self.e.prompt(wav, sr, ref_text, "base06"), 3, "base06"),
-            "복제 0.6B 목소리 특징만": lambda: self.e.clone(
-                [TEST_SENTENCE], self.e.prompt(wav, sr, None, "base06"), 3, "base06"),
         }
-        table = {}
+        # '목소리 특징만' 복제는 T4에서 GPU 오류(device-side assert)가 나서 제외 (10/21)
+        table = self.summary.setdefault("speed", {})
         for label, fn in variants.items():
             fn()  # 첫 실행은 준비 시간이 섞이므로 제외
             secs, audio = [], 0.0
@@ -130,16 +130,16 @@ class Spike:
             table[label] = {"평균초": round(float(np.mean(secs)), 2), "최소초": round(min(secs), 2),
                             "실시간배수": round(audio / float(np.mean(secs)), 2)}
             self.log(f"속도: {label} 평균 {np.mean(secs):.2f}초")
-        self.summary["speed"] = table
+            self.write()
 
-        throughput = {}
+        throughput = self.summary.setdefault("throughput", {})
         for model in ("base17", "base06"):
             items = self.e.prompt(wav, sr, ref_text, model)
             for n in (1, 2, 4, 8):
                 texts = CONSISTENCY_SENTENCES[:n]
                 _, sec = self.timed(self.e.clone, texts, items, 4, model)
                 throughput[f"{model} 동시 {n}개"] = round(n / sec, 2)
-        self.summary["throughput"] = throughput
+                self.write()
         self.log("동시 처리량 측정 완료")
 
     # ---------- 6. 숨소리 조건 비교 + 앞 숨소리 자르기 ----------
@@ -208,6 +208,8 @@ def main() -> None:
     parser.add_argument("--out", default="t03_out")
     parser.add_argument("--voices", default=",".join(VOICES), help="예: v20f1 (빠른 시험)")
     parser.add_argument("--fake", action="store_true", help="GPU 없이 흐름만 확인")
+    parser.add_argument("--steps", default=",".join(STEPS),
+                        help="일부만 다시 돌리기, 예: breath,split,urgent,speed (기준 음성은 항상 먼저 만듦)")
     args = parser.parse_args()
 
     out = Path(args.out)
@@ -224,7 +226,11 @@ def main() -> None:
 
     spike = Spike(engine, out, args.voices.split(","))
     spike.log(f"시작 (GPU: {engine.gpu}, 음성: {args.voices})")
-    spike.run(["build_references", "compare_methods", "consistency", "speed", "breath", "split", "urgent"])
+    steps = [s for s in args.steps.split(",") if s and s != "build_references"]
+    unknown = [s for s in steps if s not in STEPS]
+    if unknown:
+        sys.exit(f"❌ 모르는 단계: {unknown}. 쓸 수 있는 단계: {', '.join(STEPS)}")
+    spike.run(["build_references", *steps])
 
     from spike_report import build_report
     path = build_report(out)

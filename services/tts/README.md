@@ -108,6 +108,8 @@ T02와 같은 노트북에서 새 칸을 만들어 실행해요. (GPU T4 x2, Int
 ```
 
 - 시간을 줄이려면 마지막 줄 끝에 `--voices v20f1` 을 붙여요 (음성 1개만, 약 15분).
+- 일부만 다시 돌리기: 끝에 `--steps breath,split,urgent,speed` 를 붙이고, **`--out` 폴더 이름을 새로** 바꿔요 (예: `t03_out2`). 같은 폴더면 이전 결과를 덮어써요.
+- 속도 측정은 GPU 오류 위험이 있어 맨 마지막에 해요.
 - 끝나면 보고서를 보는 칸:
 ```python
 from IPython.display import HTML
