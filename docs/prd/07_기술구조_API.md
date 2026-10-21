@@ -50,7 +50,7 @@ itda-tts/
 | 후처리 | ffmpeg `atempo`(속도), `vibrato`(떨림), 무음 삽입 | 04 문서 |
 | 비상 음성 | 브라우저 내장 음성 합성 (`speechSynthesis`, `ko-KR`) | 무료, 서버 불필요 |
 | 자막 | 브라우저 음성 인식 (`webkitSpeechRecognition`, `ko-KR`) + (선택) 서버 faster-whisper | 06 문서 |
-| 감정 AI(선택) | 소형 LLM API, 0.4초 제한 | 04 문서 |
+| 감정 AI | 소형 LLM API, 입력 중 미리 분석, 1.5초 제한, 보내기는 기다리지 않음 | 04 문서 3단계 |
 
 ## 4. 호스팅과 도메인
 | 주소 | 대상 | DNS 설정 (도메인 관리 화면) |
@@ -71,12 +71,12 @@ itda-tts/
 | `POST /auth/guest` | 이름·나이대·성별로 가입 | `{name, ageGroup:"10s".."70s", gender:"m|f", consent:true}` → `{userId, token}` |
 | `PATCH /me` | 목소리·설정 변경 | `{voiceId?, speed?}` → `{ok}` |
 | `DELETE /me` | 내 정보 삭제 | → `{ok}` |
-| `GET /voices?ageGroup=&gender=` | 승인된 음성 목록 | → `[{id,name,ageGroup,gender,description,tags,previewUrl,waveUrl}]` |
+| `GET /voices?ageGroup=&gender=` | 승인된 음성 목록 | → `[{id,name,ageGroup,gender,description,tags,previewUrl,waveUrl,card}]` (`card`: 농인용 목소리 카드 — `{easy, impression, scales:{pitch,speed,mood,strength}, suits}`) |
 | `GET /voices/recommend?ageGroup=&gender=` | 추천 3개 | → 위와 같은 3개 |
 | `POST /tts` | 음성 생성 | `{text, voiceId, emotion:{emotion,intensity,tremor}, speed}` → `{url, durationMs, cached, fallback, displayText}` |
 | `POST /tts/warmup` | GPU 미리 깨우기 | → `{state:"ready|warming|off"}` |
 | `GET /tts/status` | 상태 점 표시용 | → `{state, queue, avgMs}` |
-| `POST /emotion/analyze` | (선택) AI 문맥 분석 | `{text, context:[{role,text,emotion}]}` → 감정 JSON |
+| `POST /emotion/analyze` | AI 문맥 분석 (입력 중 미리 호출, 04 문서 3단계) | `{text, context:[{role,text,emotion}]}` → 감정 JSON |
 | `POST /calls` | 통화 방 만들기 | → `{callId, joinUrl, qrSvg, expiresAt}` |
 | `GET /calls/{id}` | 방 상태 (청인용, 토큰 불필요) | → `{state, deafName}` |
 | `WS /ws/calls/{id}?role=deaf|hearing` | 통화 메시지 (06 문서 형식) | |
@@ -109,7 +109,8 @@ users(id TEXT PK, name TEXT, age_group TEXT, gender TEXT, voice_id TEXT, speed R
       consent_version TEXT, consent_at TEXT, -- 어떤 동의 문구에 동의했는지
       created_at TEXT, deleted_at TEXT)
 voices(id TEXT PK, name TEXT, age_group TEXT, gender TEXT, description TEXT, tags TEXT,
-       approved INTEGER, preview_url TEXT, wave_url TEXT)      -- voices.json에서 불러옴
+       approved INTEGER, preview_url TEXT, wave_url TEXT,
+       card TEXT)      -- voices.json에서 불러옴. card = 농인용 목소리 카드 JSON
 tts_cache(key TEXT PK, path TEXT, duration_ms INTEGER, created_at TEXT, pinned INTEGER)
 events(id INTEGER PK, type TEXT, ms INTEGER, fallback INTEGER, created_at TEXT)  -- 성능 기록, 글 내용 없음
 ```
