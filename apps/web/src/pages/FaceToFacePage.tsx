@@ -21,12 +21,13 @@ type Props = {
   onView: (v: ViewSettings) => void;
   onHome: () => void;
   onAuthLost: () => void;
+  speaker?: boolean; // 스피커 방식(06 문서 3절): 위쪽 뒤집힌 영역 없이 대화 화면만
 };
 
 let seq = 0;
 const newId = () => `m${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Props) {
+export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, speaker = false }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [live, setLive] = useState<Record<string, Live>>({});
   const [problem, setProblem] = useState<"offline" | "auth" | "busy" | "empty" | null>(null);
@@ -121,7 +122,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
   return (
     <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
       <EdgeGlow enabled={view.glow} colorFor={colorFor} />
-      {view.showTop && (
+      {view.showTop && !speaker && (
         <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
           {/* 180° 돌려 놓았으므로 border-t 가 화면에서는 위·아래 경계선(가운데)에 보인다 */}
           <p className={`text-center font-bold leading-snug text-ink ${(topMessage?.text.length ?? 0) > 40 ? "text-2xl" : "text-3xl"}`}>
@@ -139,12 +140,16 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
           <button type="button" onClick={onHome} className="min-h-[56px] rounded-xl border-2 border-navy px-3 font-bold text-navy">← 홈</button>
           <button type="button" onClick={() => onView({ ...view, font: ((view.font + 1) % 3) as 0 | 1 | 2 })}
             className="min-h-[56px] flex-1 rounded-xl border-2 border-gray-400 px-2 font-semibold">가 글자: {font.label}</button>
-          <button type="button" onClick={() => onView({ ...view, showTop: !view.showTop })}
-            className="min-h-[56px] flex-1 rounded-xl border-2 border-gray-400 px-2 font-semibold">
-            {view.showTop ? "위쪽 숨기기" : "위쪽 보이기"}
-          </button>
+          {!speaker && (
+            <button type="button" onClick={() => onView({ ...view, showTop: !view.showTop })}
+              className="min-h-[56px] flex-1 rounded-xl border-2 border-gray-400 px-2 font-semibold">
+              {view.showTop ? "위쪽 숨기기" : "위쪽 보이기"}
+            </button>
+          )}
         </div>
-        <p className="text-base text-muted">🔊 폰 소리를 켜고 음량을 크게 해 주세요</p>
+        <p className="text-base text-muted">
+          {speaker ? "📱 스피커 방식: 볼륨 최대 · 상대 말 자막은 나오지 않아요" : "🔊 폰 소리를 켜고 음량을 크게 해 주세요"}
+        </p>
         {problem === "offline" && <Notice kind="error">인터넷 연결을 확인해 주세요. 지금은 기본 목소리로 말해요</Notice>}
         {problem === "empty" && <Notice kind="error">읽을 글자가 없어요. 글자를 함께 적어 주세요</Notice>}
         {problem === "busy" && <Notice kind="error">너무 빨리 보내고 있어요. 지금은 기본 목소리로 말해요</Notice>}

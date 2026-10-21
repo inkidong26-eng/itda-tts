@@ -6,6 +6,7 @@ import { FaceToFacePage } from "./pages/FaceToFacePage";
 import { HomePage, SoonPage } from "./pages/HomePage";
 import { NamePage } from "./pages/NamePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { SpeakerGuidePage } from "./pages/SpeakerGuidePage";
 import { StartPage } from "./pages/StartPage";
 import { VoicePage } from "./pages/VoicePage";
 import { type Session, clearSession, loadSession, saveSession } from "./storage/local";
@@ -19,6 +20,8 @@ type View =
   | { name: "home" }
   | { name: "face" }
   | { name: "call" }
+  | { name: "speakerGuide" }
+  | { name: "speaker" }
   | { name: "settings" }
   | { name: "soon"; what: string };
 
@@ -100,7 +103,15 @@ export default function App() {
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
         <CallPage session={session} view={viewSettings} onHome={() => setView({ name: "home" })}
-          onSpeaker={() => setView({ name: "soon", what: "일반 전화 중에 쓰기 (스피커 방식)" })} />
+          onSpeaker={() => setView({ name: "speakerGuide" })} />
+      );
+    case "speakerGuide":
+      return <SpeakerGuidePage onStart={() => setView({ name: "speaker" })} onBack={() => setView({ name: "call" })} />;
+    case "speaker":
+      if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
+      return (
+        <FaceToFacePage session={session} view={viewSettings} onView={changeView} speaker
+          onHome={() => setView({ name: "home" })} onAuthLost={restart} />
       );
     case "settings":
       return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} />;
