@@ -27,8 +27,7 @@ itda-tts/
 ├─ apps/web/                         # React + TypeScript + Vite + Tailwind, PWA
 │  └─ src/{pages,components,audio,emotion,feedback,call,storage,api}
 ├─ services/api/                     # Python 3.12, FastAPI, SQLite
-│  ├─ app/{main.py,routers/,db.py,storage.py,rate_limit.py,tts_client.py,cache.py,text_normalize.py,emotion.py,calls.py}
-│  └─ migrations/                    # Alembic (DB 구조 변경 기록)
+│  └─ app/{main.py,routers/,db.py,storage.py,rate_limit.py,tts_client.py,cache.py,text_normalize.py,emotion.py,calls.py}
 ├─ services/tts/                     # Python 3.12, Qwen3-TTS, Docker (GPU)
 │  ├─ server.py
 │  ├─ scripts/build_voices.py
@@ -89,8 +88,8 @@ itda-tts/
 1. 텍스트 정규화 (03 문서 7절) → 100자 넘으면 400 오류 (화면에서 미리 막음).
 2. 캐시 키 = `sha1(voiceId|emotion|intensity|tremor|speed|정규화된 텍스트)` → 파일이 있으면 즉시 URL 반환 (`cached:true`).
 3. 없으면 TTS 대기열에 넣음. TTS 서버 여러 대에 **가장 한가한 서버**로 분배 (서버당 동시 처리 수 `TTS_MAX_CONCURRENCY`, 기본 4).
-4. **2.5초 안에 생성이 시작되지 않거나 총 6초가 넘으면** `{fallback:true, displayText}` 반환 → 폰이 기본 음성으로 즉시 읽음. (생성은 계속 진행해 캐시에 저장)
-5. 긴 문장(30자 초과)은 문장 부호 기준으로 나눠 **첫 조각을 먼저** 생성·반환하고 나머지는 이어서 (응답에 `parts:[url…]` 순차 추가, 폰 재생 큐가 이어 재생). 행사판에서 복잡하면 T15에서 단일 파일로 단순화 가능.
+4. **2.5초 안에 GPU 차례가 오지 않거나(대기열에서 아직 GPU 서버로 보내지 못함) 요청부터 총 4초가 넘으면** `{fallback:true, displayText}` 반환 → 폰이 기본 음성으로 즉시 읽음. (생성은 계속 진행해 캐시에 저장)
+5. 긴 문장도 **행사판은 한 파일로** 생성한다 (100자 제한이라 충분). 나눠 생성하기(`parts`)는 출시판에서 검토.
 6. 후처리(속도·떨림·무음·mp3 변환) → 파일 저장 → URL 반환.
 
 ## 6. TTS 서버 명세 (내부)
@@ -115,7 +114,7 @@ tts_cache(key TEXT PK, path TEXT, duration_ms INTEGER, created_at TEXT, pinned I
 events(id INTEGER PK, type TEXT, ms INTEGER, fallback INTEGER, created_at TEXT)  -- 성능 기록, 글 내용 없음
 ```
 - 통화 방은 메모리에만 (서버 재시작 시 사라져도 됨). 방 관리 코드는 `calls.py` 한 곳에 모은다 (10절).
-- DB는 `db.py` 한 곳에서만 접근한다. 표 만들기·바꾸기는 Alembic으로 기록한다.
+- DB는 `db.py` 한 곳에서만 접근한다. 행사판은 서버 시작 시 표를 자동으로 만든다(`create_all`). DB 구조 변경 도구(Alembic)는 출시판 직전에 넣는다.
 - **대화 글 내용은 서버 DB·로그 어디에도 남기지 않는다.** 캐시 음성 파일은 24시간 뒤 삭제 (즐겨찾기 미리 생성분 `pinned=1` 제외).
 
 ## 8. 보안·제한
@@ -136,7 +135,7 @@ TTS_ENDPOINTS=https://gpu1.example/,https://gpu2.example/
 TTS_KEY=...
 TTS_MAX_CONCURRENCY=4
 TTS_START_TIMEOUT_MS=2500
-TTS_TOTAL_TIMEOUT_MS=6000
+TTS_TOTAL_TIMEOUT_MS=4000
 EMOTION_LLM_ENABLED=false
 EMOTION_LLM_API_KEY=
 STT_SERVER_ENABLED=false
@@ -149,7 +148,7 @@ VITE_API_BASE=https://api.itda.gyeot.ai.kr
 
 | 부품 | 행사판 (지금) | 출시판 (사용자 증가 시) | 지금 지킬 것 |
 |---|---|---|---|
-| DB | SQLite | PostgreSQL | SQLAlchemy + `DATABASE_URL` 설정값. DB 접근은 `db.py` 에서만. 표 변경은 Alembic |
+| DB | SQLite | PostgreSQL | SQLAlchemy + `DATABASE_URL` 설정값. DB 접근은 `db.py` 에서만. 표 변경 도구 Alembic은 출시판 직전에 도입 |
 | 음성 파일 | API 서버 디스크 (`AUDIO_DIR`) | 클라우드 저장소(S3 방식) + CDN | 파일 저장·삭제·주소 만들기는 `storage.py` 에서만. 주소는 `PUBLIC_AUDIO_BASE` 로 만든다 |
 | 통화 방 | 서버 메모리 | Redis (서버 여러 대가 공유) | 방 만들기·찾기·삭제·메시지 전달은 `calls.py` 에서만 |
 | 요청 제한 | 서버 메모리 | Redis | 요청 제한은 `rate_limit.py` 에서만 |
