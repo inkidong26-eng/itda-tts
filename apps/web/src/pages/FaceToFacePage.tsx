@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ApiError, speak, type TtsResult } from "../api/client";
 import { type PlayerEvent, player, unlockAudio } from "../audio/player";
 import { Composer, type Live, MessageList } from "../components/Conversation";
+import type { Turn } from "../emotion/context";
+import { emotionInfo, type EmotionResult } from "../emotion/types";
 import { Notice } from "../components/ui";
 import { createOrdered } from "../lib/ordered";
 import { speechText } from "../lib/speechText";
@@ -61,13 +63,16 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
 
   useEffect(() => () => player.stopAll(), []);
 
-  const send = (text: string, existing?: Message) => {
+  const send = (text: string, emotion?: EmotionResult, existing?: Message) => {
     unlockAudio(); // 보내기 터치 안에서 소리 장치를 깨운다 (아이폰)
     if (!speechText(text)) {
       setProblem("empty"); // 이모지·ㅠㅠ만 있으면 읽을 글자가 없다
       return;
     }
-    const message: Message = existing ? { ...existing, result: undefined } : { id: newId(), role: "me", text, at: Date.now() };
+    const chosen = emotion ? { emotion: emotion.emotion, intensity: emotion.intensity, tremor: emotion.tremor } : existing?.emotion;
+    const message: Message = existing
+      ? { ...existing, result: undefined }
+      : { id: newId(), role: "me", text, at: Date.now(), emotion: chosen };
     const id = message.id;
     setLive((cur) => ({ ...cur, [id]: { state: "sending", fallback: false, silent: false } }));
     if (!existing) {
@@ -76,7 +81,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
     }
     // 서버 요청은 바로 보내고, 재생은 보낸 순서대로
     const request: Promise<TtsResult | ApiError> = session.voiceId
-      ? speak(session.token, text, session.voiceId).catch((err) => (err instanceof ApiError ? err : new ApiError(0, "")))
+      ? speak(session.token, text, session.voiceId, chosen).catch((err) => (err instanceof ApiError ? err : new ApiError(0, "")))
       : Promise.resolve(new ApiError(400, ""));
     void inOrder(request, (res) => {
       if (res instanceof ApiError) {
@@ -92,14 +97,21 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
   };
 
   const lastMine = [...messages].reverse().find((m) => m.role === "me");
+  const recent: Turn[] = useMemo(
+    () => messages.slice(-3).map((m) => ({ role: m.role, text: m.text, emotion: m.emotion })),
+    [messages],
+  );
+  const edge = lastMine?.emotion ? emotionInfo(lastMine.emotion.emotion).color : "#1A9A9A";
   const font = FONT_STEPS[view.font];
 
   return (
     <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
       {view.showTop && (
-        <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[38%] rotate-180 flex-col justify-center overflow-hidden border-b-4 border-brand bg-blue-50 px-4 py-3">
-          {/* "말하는 중" 막대·단어 하이라이트(T14), 감정 색 테두리(T12) 자리 */}
-          <p className="text-center text-3xl font-bold leading-snug text-ink">
+        <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
+          {/* 180° 돌려 놓았으므로 border-t 가 화면에서는 위·아래 경계선(가운데)에 보인다 */}
+          {/* "말하는 중" 막대·단어 하이라이트(T14) 자리 */}
+          <p className={`text-center font-bold leading-snug text-ink ${(lastMine?.text.length ?? 0) > 40 ? "text-2xl" : "text-3xl"}`}>
+            {lastMine?.emotion && <span aria-hidden="true">{emotionInfo(lastMine.emotion.emotion).icon} </span>}
             {lastMine?.text ?? "안녕하세요. 저는 글로 말해요. 제 말은 목소리로 들리고 여기에도 크게 보여요."}
           </p>
         </section>
@@ -127,10 +139,10 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border-2 border-gray-200 p-3">
-          <MessageList messages={messages} live={live} onRetry={(m) => send(m.text, m)} />
+          <MessageList messages={messages} live={live} onRetry={(m) => send(m.text, undefined, m)} />
         </div>
-        {/* 청인 말 자막(T11)·감정 칩(T12) 자리 */}
-        <Composer onSend={(t) => send(t)} />
+        {/* 청인 말 자막(T11) 자리 */}
+        <Composer recent={recent} onSend={(t, e) => send(t, e)} />
       </section>
     </main>
   );

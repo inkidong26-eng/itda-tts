@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { estimateWithContext, type Turn } from "../emotion/context";
+import { emotionInfo, type EmotionResult } from "../emotion/types";
 import type { Message } from "../storage/history";
 import { DEFAULT_FAVORITES } from "../lib/favorites";
+import { EmotionChips, finalEmotion, type Manual } from "./EmotionChips";
 import { Button } from "./ui";
 
 export type LiveState = "sending" | "queued" | "playing" | "done" | "failed";
@@ -53,10 +56,14 @@ export function MessageList({ messages, live, onRetry }: {
       {messages.map((m) => {
         const status = statusOf(m, live[m.id]);
         const failed = live[m.id]?.state === "failed" || (!live[m.id] && m.result === "failed");
+        const emo = m.emotion ? emotionInfo(m.emotion.emotion) : null;
         return (
           <div key={m.id} className={`flex flex-col ${m.role === "me" ? "items-end" : "items-start"}`}>
-            <p className={`max-w-[85%] rounded-2xl px-4 py-2 text-lg ${m.role === "me" ? "bg-navy text-white" : "bg-gray-100 text-ink"}`}>
+            <p className={`max-w-[85%] rounded-2xl px-4 py-2 text-lg ${m.role === "me" ? "bg-navy text-white" : "bg-gray-100 text-ink"}`}
+              style={emo ? { borderLeft: `8px solid ${emo.color}` } : undefined}>
+              {emo && <span aria-label={`감정 ${emo.label}`} className="mr-1">{emo.icon}</span>}
               {m.text}
+              {m.emotion && m.emotion.tremor > 0 && <span aria-label="떨림" className="ml-1">{"〰".repeat(m.emotion.tremor)}</span>}
             </p>
             {status && <p className={`mt-1 text-base ${TONE[status.tone]}`}>{status.text}</p>}
             {failed && (
@@ -76,20 +83,30 @@ export function MessageList({ messages, live, onRetry }: {
 const MAX = 100;
 
 /** 입력칸 + 보내기 + 즐겨찾기 ⭐ */
-export function Composer({ onSend, disabled }: { onSend: (text: string) => void; disabled?: boolean }) {
+export function Composer({ onSend, recent, disabled }: {
+  onSend: (text: string, emotion: EmotionResult) => void;
+  recent: Turn[];
+  disabled?: boolean;
+}) {
   const [text, setText] = useState("");
   const [favOpen, setFavOpen] = useState(false);
+  const [manual, setManual] = useState<Manual>({});
+  // 입력할 때마다 즉시 추정 (폰 안에서, 0.01초)
+  const auto = useMemo(() => estimateWithContext(text, recent), [text, recent]);
 
   const send = (value: string) => {
-    const t = value.trim();
+    const t = value.trim().slice(0, MAX);
     if (!t || disabled) return;
-    onSend(t.slice(0, MAX));
+    const base = value === text ? auto : estimateWithContext(t, recent); // 즐겨찾기는 그 문구로 다시 추정
+    onSend(t, finalEmotion(base, manual));
     setText("");
     setFavOpen(false);
+    setManual({}); // 보낸 뒤 자동 모드로
   };
 
   return (
     <div className="flex flex-col gap-2">
+      <EmotionChips auto={auto} manual={manual} onChange={setManual} />
       {favOpen && (
         <div className="grid grid-cols-2 gap-2" role="group" aria-label="즐겨찾기 문구">
           {DEFAULT_FAVORITES.map((f) => (

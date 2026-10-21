@@ -1,4 +1,6 @@
 // 대화 기록은 폰(IndexedDB)에만 저장한다. 서버로 보내지 않는다 (규칙 4).
+import type { EmotionCode } from "../emotion/types";
+
 // IndexedDB 를 못 쓰는 경우(사생활 보호 모드 등)에는 이번 방문 동안만 메모리에 둔다.
 
 export type Message = {
@@ -7,6 +9,7 @@ export type Message = {
   text: string;
   at: number;             // 보낸 시각 (ms)
   result?: "done" | "fallback" | "failed";
+  emotion?: { emotion: EmotionCode; intensity: number; tremor: number }; // 말풍선 색·아이콘, 대화 흐름(04 문서 3절)
 };
 
 export type HistoryStore = {
