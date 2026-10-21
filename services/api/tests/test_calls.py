@@ -71,9 +71,9 @@ def test_conversation_between_two_people(room):
 
         # 청인 폰의 실제 재생 상태 → 농인 폰 ("상대 폰에서 들리는 중")
         hearing.send_json({"type": "playback", "msgId": "m1", "state": "start"})
-        hearing.send_json({"type": "playback", "msgId": "m1", "state": "level", "level": 3.0})
+        hearing.send_json({"type": "playback", "msgId": "m1", "state": "level", "level": 3.0, "progress": 0.4})
         assert deaf.receive_json() == {"type": "playback", "msgId": "m1", "state": "start"}
-        assert deaf.receive_json() == {"type": "playback", "msgId": "m1", "state": "level", "level": 1.0}
+        assert deaf.receive_json() == {"type": "playback", "msgId": "m1", "state": "level", "level": 1.0, "progress": 0.4}
 
         # 청인 말 → 자막, 말하는 중 표시
         hearing.send_json({"type": "caption", "text": "네 반갑습니다", "final": True})
@@ -164,6 +164,19 @@ class Clock:
 
     def __call__(self) -> float:
         return self.now
+
+
+def test_ping_keeps_connection_but_is_not_activity(room):
+    client, token, call_id = room
+    calls = client.app.state.calls
+    deaf = join_deaf(client, call_id, token)
+    r = calls.get(call_id)
+    before = r.last_active
+    deaf.send_json({"type": "ping"})
+    deaf.send_json({"type": "say", "msgId": "x", "text": "확인"})  # 다음 메시지가 처리됐다 = ping 은 무시됨
+    assert deaf.receive_json()["type"] == "undelivered"
+    assert r.last_active >= before
+    deaf.__exit__(None, None, None)
 
 
 def test_rooms_expire_and_idle_rooms_end():

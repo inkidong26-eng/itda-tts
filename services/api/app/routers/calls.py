@@ -90,8 +90,9 @@ def _relay(msg: dict) -> dict | None:
     kind = msg.get("type")
     if kind == "playback" and msg.get("state") in PLAYBACK_STATES:
         out = {"type": "playback", "msgId": str(msg.get("msgId", ""))[:40], "state": msg["state"]}
-        if isinstance(msg.get("level"), (int, float)):
-            out["level"] = max(0.0, min(1.0, float(msg["level"])))
+        for key in ("level", "progress"):  # 소리 크기, 재생 위치 (하이라이트용) — 0~1 로 자름
+            if isinstance(msg.get(key), (int, float)):
+                out[key] = max(0.0, min(1.0, float(msg[key])))
         return out
     if kind == "caption" and isinstance(msg.get("text"), str):
         return {"type": "caption", "text": msg["text"][:500], "final": bool(msg.get("final"))}
@@ -136,8 +137,8 @@ async def call_socket(ws: WebSocket, call_id: str, role: str = "") -> None:
                 msg = json.loads(raw)
             except ValueError:
                 continue
-            if not isinstance(msg, dict):
-                continue
+            if not isinstance(msg, dict) or msg.get("type") == "ping":
+                continue  # 연결 유지 신호는 대화 활동이 아니다 (방치된 방은 15분 뒤 정리)
             calls.touch(room)
             if msg.get("type") == "hangup":
                 await calls.end(room, "hangup")

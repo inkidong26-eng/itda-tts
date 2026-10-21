@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, signup } from "./api/client";
 import { AgeGenderPage } from "./pages/AgeGenderPage";
+import { CallPage } from "./pages/CallPage";
 import { FaceToFacePage } from "./pages/FaceToFacePage";
 import { HomePage, SoonPage } from "./pages/HomePage";
 import { NamePage } from "./pages/NamePage";
@@ -17,6 +18,7 @@ type View =
   | { name: "voice" }
   | { name: "home" }
   | { name: "face" }
+  | { name: "call" }
   | { name: "settings" }
   | { name: "soon"; what: string };
 
@@ -85,13 +87,20 @@ export default function App() {
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
         <HomePage session={session} onSoon={(what) => setView(
-          what === "마주보고 대화" ? { name: "face" } : what === "설정" ? { name: "settings" } : { name: "soon", what })} />
+          what === "마주보고 대화" ? { name: "face" } : what === "전화로 대화" ? { name: "call" }
+            : what === "설정" ? { name: "settings" } : { name: "soon", what })} />
       );
     case "face":
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
         <FaceToFacePage session={session} view={viewSettings} onView={changeView}
           onHome={() => setView({ name: "home" })} onAuthLost={restart} />
+      );
+    case "call":
+      if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
+      return (
+        <CallPage session={session} view={viewSettings} onHome={() => setView({ name: "home" })}
+          onSpeaker={() => setView({ name: "soon", what: "일반 전화 중에 쓰기 (스피커 방식)" })} />
       );
     case "settings":
       return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} />;

@@ -93,6 +93,18 @@ export function speak(token: string, text: string, voiceId: string, emotion?: Em
   return request<TtsResult>("POST", "/tts", token, { text, voiceId, ...(emotion ? { emotion } : {}) });
 }
 
+export type CallInfo = { callId: string; joinUrl: string; qrSvg: string; expiresAt: string };
+
+/** 링크 통화 방 만들기 (농인) */
+export function createCall(token: string) {
+  return request<CallInfo>("POST", "/calls", token, {});
+}
+
+/** 방 상태 (청인, 로그인 없음) */
+export function getCall(callId: string) {
+  return request<{ state: "waiting" | "connected" | "ended"; deafName: string }>("GET", `/calls/${encodeURIComponent(callId)}`);
+}
+
 /** 음성 서버 미리 깨우기. 실패해도 앱은 계속 (아직 /tts/warmup 이 없으면 무시) */
 export function warmup(): void {
   request("POST", "/tts/warmup").catch(() => undefined);

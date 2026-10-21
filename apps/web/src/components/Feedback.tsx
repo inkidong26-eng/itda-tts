@@ -1,12 +1,13 @@
 // 05 문서 1·2·6절: "말하는 중" 막대, 단어 하이라이트, 테두리 빛. 모두 실제 재생 신호(useSpeaking)로만 움직인다.
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { player } from "../audio/player";
+import type { SignalBus } from "../feedback/bus";
 import { useSpeaking } from "../feedback/hooks";
 import { timeline, wordAt } from "../feedback/timeline";
 
 /** "말하는 중" 막대 1개. 서버 음성: 소리 크기만큼 / 기본 음성: 잴 수 없으므로 말하는 동안 고정 + 배지 */
-export function SpeakingBar({ id, color }: { id: string | undefined; color: string }) {
-  const s = useSpeaking(id);
+export function SpeakingBar({ id, color, bus }: { id: string | undefined; color: string; bus?: SignalBus }) {
+  const s = useSpeaking(id, bus);
   if (!s.playing) return null;
   const fixed = s.level === null;
   const width = fixed ? 100 : Math.round(15 + s.level! * 85);
@@ -22,8 +23,8 @@ export function SpeakingBar({ id, color }: { id: string | undefined; color: stri
 }
 
 /** 노래방 자막처럼: 읽은 어절은 진하게, 지금 어절은 감정 색 배경 + 살짝 크게, 아직은 옅게 */
-export function HighlightText({ id, text, color }: { id: string | undefined; text: string; color: string }) {
-  const s = useSpeaking(id);
+export function HighlightText({ id, text, color, bus }: { id: string | undefined; text: string; color: string; bus?: SignalBus }) {
+  const s = useSpeaking(id, bus);
   const spans = useMemo(() => timeline(text), [text]);
   const now = s.playing ? wordAt(spans, s.progress) : -1;
   return (
@@ -31,11 +32,15 @@ export function HighlightText({ id, text, color }: { id: string | undefined; tex
       {spans.map((w, i) => {
         const done = !s.playing || i < now;
         const current = i === now;
+        // 띄어쓰기는 상자 밖에: inline-block 상자 안 끝 공백은 사라져 단어가 붙어 보인다
         return (
-          <span key={i} className={`inline-block rounded-md px-0.5 transition-transform ${current ? "scale-110" : ""}`}
-            style={{ background: current ? `${color}55` : undefined, color: done || current ? "#111827" : "#9ca3af" }}>
-            {w.word}{i < spans.length - 1 ? " " : ""}
-          </span>
+          <Fragment key={i}>
+            <span className={`inline-block rounded-md px-0.5 transition-transform ${current ? "scale-110" : ""}`}
+              style={{ background: current ? `${color}55` : undefined, color: done || current ? "#111827" : "#9ca3af" }}>
+              {w.word}
+            </span>
+            {i < spans.length - 1 ? " " : ""}
+          </Fragment>
         );
       })}
     </>
@@ -45,19 +50,26 @@ export function HighlightText({ id, text, color }: { id: string | undefined; tex
 type Blink = { color: string; times: number; key: number } | null;
 
 /** 화면 가장자리 빛 (아이폰 기본). 소리 크기에 맞춰 0.2~1.0, 완료 2번·실패 빨강 3번 깜박 */
-export function EdgeGlow({ enabled, colorFor }: { enabled: boolean; colorFor: (id: string) => string }) {
+export function EdgeGlow({ enabled, colorFor, bus = player, flash }: {
+  enabled: boolean;
+  colorFor: (id: string) => string;
+  bus?: SignalBus;
+  flash?: { color: string; times: number; key: number } | null; // 연결됨(초록 3번) 같은 알림 깜박임
+}) {
   const [glow, setGlow] = useState<{ color: string; opacity: number } | null>(null);
   const [blink, setBlink] = useState<Blink>(null);
 
   useEffect(() => {
     if (!enabled) { setGlow(null); return; }
-    return player.subscribe((e) => {
+    return bus.subscribe((e) => {
       if (e.type === "start") setGlow({ color: colorFor(e.id), opacity: e.source === "server" ? 0.2 : 0.6 });
       if (e.type === "level") setGlow((g) => g && { ...g, opacity: 0.2 + e.level * 0.8 });
       if (e.type === "end") { setGlow(null); setBlink({ color: colorFor(e.id), times: 2, key: Date.now() }); }
       if (e.type === "error") { setGlow(null); setBlink({ color: "#D93A3A", times: 3, key: Date.now() }); }
     });
-  }, [enabled, colorFor]);
+  }, [enabled, colorFor, bus]);
+
+  useEffect(() => { if (enabled && flash) setBlink(flash); }, [enabled, flash]);
 
   if (!enabled || (!glow && !blink)) return null;
   const color = glow?.color ?? blink!.color;

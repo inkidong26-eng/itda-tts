@@ -4,22 +4,23 @@ import { emotionInfo, type EmotionResult } from "../emotion/types";
 import type { Message } from "../storage/history";
 import { DEFAULT_FAVORITES } from "../lib/favorites";
 import { EmotionChips, finalEmotion, type Manual } from "./EmotionChips";
+import type { SignalBus } from "../feedback/bus";
 import { SpeakingBar } from "./Feedback";
 import { Button } from "./ui";
 
 export type LiveState = "sending" | "queued" | "playing" | "done" | "failed";
-export type Live = { state: LiveState; fallback: boolean; silent: boolean };
+export type Live = { state: LiveState; fallback: boolean; silent: boolean; note?: string };
 
 /** 말풍선 아래 상태 한 줄: 글자 + 아이콘 + 색 (소리에만 의존하지 않기) */
-function statusOf(m: Message, live?: Live): { text: string; tone: "muted" | "ok" | "warn" } | null {
+function statusOf(m: Message, live?: Live, failText = "⚠️ 소리가 나지 않았어요"): { text: string; tone: "muted" | "ok" | "warn" } | null {
   if (live) {
     if (live.silent && live.state !== "failed") return { text: "⚠️ 소리가 안 들려요. 폰 소리를 켜 주세요", tone: "warn" };
     const fb = live.fallback ? " · 기본 목소리" : "";
     if (live.state === "sending") return { text: "⏳ 보내는 중", tone: "muted" };
-    if (live.state === "queued") return { text: "⏳ 차례를 기다려요", tone: "muted" };
-    if (live.state === "playing") return { text: `🔊 말하는 중${fb}`, tone: "ok" };
+    if (live.state === "queued") return { text: live.note ?? "⏳ 차례를 기다려요", tone: "muted" };
+    if (live.state === "playing") return { text: `${live.note ?? "🔊 말하는 중"}${fb}`, tone: "ok" };
     if (live.state === "done") return { text: live.fallback ? "✅ 전달 완료 · 기본 목소리로 말했어요" : "✅ 전달 완료", tone: "ok" };
-    return { text: "⚠️ 소리가 나지 않았어요", tone: "warn" };
+    return { text: failText, tone: "warn" };
   }
   if (m.result === "done") return { text: "✅ 전달 완료", tone: "ok" };
   if (m.result === "fallback") return { text: "✅ 기본 목소리로 말했어요", tone: "ok" };
@@ -29,10 +30,12 @@ function statusOf(m: Message, live?: Live): { text: string; tone: "muted" | "ok"
 
 const TONE = { muted: "text-muted", ok: "text-brand-dark", warn: "text-red-800 font-bold" };
 
-export function MessageList({ messages, live, onRetry }: {
+export function MessageList({ messages, live, onRetry, bus, failText }: {
   messages: Message[];
   live: Record<string, Live>;
   onRetry: (m: Message) => void;
+  bus?: SignalBus;          // 링크 통화: 상대 폰의 재생 신호
+  failText?: string;        // 실패 문구 (통화: "상대 폰에서 소리가 나지 않았어요")
 }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -55,7 +58,7 @@ export function MessageList({ messages, live, onRetry }: {
         <p className="text-center text-muted">아래에 글을 적고 [보내기]를 누르면 목소리로 말해요.</p>
       )}
       {messages.map((m) => {
-        const status = statusOf(m, live[m.id]);
+        const status = statusOf(m, live[m.id], failText);
         const failed = live[m.id]?.state === "failed" || (!live[m.id] && m.result === "failed");
         const emo = m.emotion ? emotionInfo(m.emotion.emotion) : null;
         return (
@@ -66,7 +69,7 @@ export function MessageList({ messages, live, onRetry }: {
               {m.text}
               {m.emotion && m.emotion.tremor > 0 && <span aria-label="떨림" className="ml-1">{"〰".repeat(m.emotion.tremor)}</span>}
             </p>
-            {live[m.id] && <div className="mt-1 w-1/2"><SpeakingBar id={m.id} color={emo?.color ?? "#1A9A9A"} /></div>}
+            {live[m.id] && <div className="mt-1 w-1/2"><SpeakingBar id={m.id} color={emo?.color ?? "#1A9A9A"} bus={bus} /></div>}
             {status && <p className={`mt-1 text-base ${TONE[status.tone]}`}>{status.text}</p>}
             {failed && (
               <button type="button" onClick={() => onRetry(m)}

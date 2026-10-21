@@ -1,6 +1,7 @@
 // 재생 신호(player.ts)를 화면 표시로 바꾸는 도우미. 가짜 애니메이션 없이 실제 신호로만 움직인다.
 import { useEffect, useRef, useState } from "react";
 import { player, type PlayerEvent, type Source } from "../audio/player";
+import type { SignalBus } from "./bus";
 import { PATTERNS, vibrate } from "./vibrate";
 
 export type Speaking = {
@@ -13,14 +14,14 @@ export type Speaking = {
 const IDLE: Speaking = { playing: false, source: null, level: null, progress: 0 };
 
 /** 한 메시지의 재생 상태 (이 메시지만 다시 그린다) */
-export function useSpeaking(id: string | undefined): Speaking {
+export function useSpeaking(id: string | undefined, bus: SignalBus = player): Speaking {
   const [s, setS] = useState<Speaking>(IDLE);
   useEffect(() => {
     // 시작 신호가 이미 지나간 뒤에 붙은 화면도 지금 재생 중임을 알 수 있게
-    const now = player.nowPlaying();
+    const now = bus.nowPlaying();
     setS(id && now?.id === id ? { playing: true, source: now.source, level: now.source === "server" ? 0 : null, progress: 0 } : IDLE);
     if (!id) return;
-    return player.subscribe((e: PlayerEvent) => {
+    return bus.subscribe((e: PlayerEvent) => {
       if (e.id !== id) return;
       if (e.type === "start") setS({ playing: true, source: e.source, level: e.source === "server" ? 0 : null, progress: 0 });
       if (e.type === "level") setS((c) => ({ ...c, level: e.level, progress: e.progress }));
@@ -28,17 +29,17 @@ export function useSpeaking(id: string | undefined): Speaking {
       if (e.type === "end") setS((c) => ({ ...c, playing: false, level: null, progress: 1 }));
       if (e.type === "error") setS(IDLE);
     });
-  }, [id]);
+  }, [id, bus]);
   return s;
 }
 
 /** 지금 소리 내는 메시지 id (없으면 null) */
-export function useNowPlaying(): string | null {
-  const [id, setId] = useState<string | null>(() => player.nowPlaying()?.id ?? null);
-  useEffect(() => player.subscribe((e) => {
+export function useNowPlaying(bus: SignalBus = player): string | null {
+  const [id, setId] = useState<string | null>(() => bus.nowPlaying()?.id ?? null);
+  useEffect(() => bus.subscribe((e) => {
     if (e.type === "start") setId(e.id);
     if (e.type === "end" || e.type === "error") setId((cur) => (cur === e.id ? null : cur));
-  }), []);
+  }), [bus]);
   return id;
 }
 
@@ -52,11 +53,11 @@ export function pulseFor(level: number, lastAt: number, now: number): number | n
 }
 
 /** 안드로이드 진동. 아이폰 브라우저는 진동을 지원하지 않아 조용히 넘어간다 */
-export function useVibration(enabled: boolean): void {
+export function useVibration(enabled: boolean, bus: SignalBus = player): void {
   const last = useRef(0);
   useEffect(() => {
     if (!enabled) return;
-    return player.subscribe((e) => {
+    return bus.subscribe((e) => {
       if (e.type === "start") vibrate(PATTERNS.start);
       if (e.type === "end") vibrate(PATTERNS.done);
       if (e.type === "error") vibrate(PATTERNS.fail);
@@ -66,5 +67,5 @@ export function useVibration(enabled: boolean): void {
         if (ms) { last.current = now; vibrate([ms]); }
       }
     });
-  }, [enabled]);
+  }, [enabled, bus]);
 }
