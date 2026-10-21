@@ -97,3 +97,31 @@ python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-dev.txt
 .venv\Scripts\python -m pytest
 ```
+
+## C. T03 검증 (Kaggle, 약 30–40분)
+T02와 같은 노트북에서 새 칸을 만들어 실행해요. (GPU T4 x2, Internet On)
+
+```python
+!rm -rf itda-tts && git clone -q https://github.com/inkidong26-eng/itda-tts.git
+!pip install -q -r itda-tts/services/tts/requirements-gpu.txt
+!python itda-tts/services/tts/scripts/spike.py --out /kaggle/working/t03_out
+```
+
+- 시간을 줄이려면 마지막 줄 끝에 `--voices v20f1` 을 붙여요 (음성 1개만, 약 15분).
+- 끝나면 보고서를 보는 칸:
+```python
+from IPython.display import HTML
+HTML(open("/kaggle/working/t03_out/spike_report.html", encoding="utf-8").read())
+```
+- 내 컴퓨터로 받기: 오른쪽 Output → `t03_out` → `spike_report.html` 옆 ⋮ → Download
+- 각 소리 옆 체크칸(좋음·숨소리·다른 사람·어색)에 표시하고 [체크 결과 복사]로 결과를 보내 주세요.
+
+| 파일 | 내용 |
+|---|---|
+| `scripts/spike.py` | 검증 순서 (기준 음성 → A/B 비교 → 10문장 → 속도 → 숨소리 → 나눠 만들기 → 다급한 문장) |
+| `scripts/spike_data.py` | 음성 3개 설명, 감정 7종 문장, 시험 문장 |
+| `scripts/spike_engine.py` | Qwen 모델 3개(설계 1.7B, 복제 1.7B·0.6B) |
+| `scripts/spike_audio.py` | 앞 숨소리 자르기, 무음 연결, 같은 사람 점수 |
+| `scripts/spike_report.py` | 보고서 HTML |
+
+GPU 없이 흐름만 확인: `.venv\Scripts\python scripts\spike.py --fake --out t03_fake`
