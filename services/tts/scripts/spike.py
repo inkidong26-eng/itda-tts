@@ -216,6 +216,9 @@ def main() -> None:
         from spike_engine import FakeEngine
         engine = FakeEngine()
     else:
+        import torch
+        if not torch.cuda.is_available():
+            sys.exit("❌ GPU가 꺼져 있어요. Kaggle 위쪽 메뉴 Settings → Accelerator → GPU T4 x2 를 고른 뒤 다시 실행해 주세요.")
         from spike_engine import QwenSpikeEngine
         engine = QwenSpikeEngine()
 
@@ -225,9 +228,11 @@ def main() -> None:
 
     from spike_report import build_report
     path = build_report(out)
-    spike.log(f"✅ 끝. 보고서: {path}")
     if spike.summary["errors"]:
-        print("⚠️ 실패한 부분:", *spike.summary["errors"], sep="\n  ")
+        spike.log(f"⚠️ 일부가 실패했어요. 보고서: {path}")
+        print("실패한 부분:", *spike.summary["errors"], sep="\n  ")
+    else:
+        spike.log(f"✅ 끝. 보고서: {path}")
 
 
 if __name__ == "__main__":
