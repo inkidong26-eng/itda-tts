@@ -30,6 +30,8 @@ def make_client(tmp_path, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{(tmp_path / 'test.db').as_posix()}")
         monkeypatch.setenv("VOICES_JSON", str(voices_path))
         monkeypatch.setenv("ALLOWED_ORIGIN", "https://itda.gyeot.ai.kr")
+        monkeypatch.setenv("AUDIO_DIR", str(tmp_path / "audio"))
+        monkeypatch.setenv("TTS_ENDPOINTS", "")
         for key, value in env.items():
             monkeypatch.setenv(key, value)
         return TestClient(create_app())

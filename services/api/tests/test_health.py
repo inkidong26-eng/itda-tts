@@ -1,7 +1,7 @@
 def test_health_returns_ok(client):
     res = client.get("/health")
     assert res.status_code == 200
-    assert res.json() == {"ok": True}
+    assert res.json() == {"ok": True, "tts": []}
 
 
 def test_server_refuses_to_start_without_secret(monkeypatch):

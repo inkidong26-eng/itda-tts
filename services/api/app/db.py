@@ -51,6 +51,27 @@ class Voice(Base):
     card: Mapped[str | None] = mapped_column(Text)
 
 
+class TtsCache(Base):
+    __tablename__ = "tts_cache"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    path: Mapped[str] = mapped_column(String)
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[str] = mapped_column(String)
+    pinned: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Event(Base):
+    """성능 기록. 글 내용은 절대 넣지 않는다."""
+    __tablename__ = "events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    type: Mapped[str] = mapped_column(String)
+    ms: Mapped[int] = mapped_column(Integer)
+    fallback: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[str] = mapped_column(String)
+
+
 def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -116,3 +137,31 @@ class Database:
         async with self.session() as s:
             voice = await s.get(Voice, voice_id)
         return voice if voice and voice.approved else None
+
+    # ---------- 음성 캐시 ----------
+    async def get_cache(self, key: str) -> TtsCache | None:
+        async with self.session() as s:
+            return await s.get(TtsCache, key)
+
+    async def put_cache(self, key: str, path: str, duration_ms: int, pinned: bool = False) -> None:
+        async with self.session() as s, s.begin():
+            await s.merge(TtsCache(key=key, path=path, duration_ms=duration_ms, created_at=now(), pinned=int(pinned)))
+
+    async def expired_cache(self, before_iso: str) -> list[TtsCache]:
+        async with self.session() as s:
+            rows = await s.scalars(select(TtsCache).where(TtsCache.pinned == 0, TtsCache.created_at < before_iso))
+            return list(rows)
+
+    async def delete_cache(self, keys: list[str]) -> None:
+        if keys:
+            async with self.session() as s, s.begin():
+                await s.execute(delete(TtsCache).where(TtsCache.key.in_(keys)))
+
+    # ---------- 성능 기록 ----------
+    async def add_event(self, type_: str, ms: int, fallback: bool) -> None:
+        async with self.session() as s, s.begin():
+            s.add(Event(type=type_, ms=ms, fallback=int(fallback), created_at=now()))
+
+    async def events(self) -> list[Event]:
+        async with self.session() as s:
+            return list(await s.scalars(select(Event).order_by(Event.id)))

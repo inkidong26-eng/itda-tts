@@ -15,6 +15,16 @@ class Settings:
     voices_json: Path
     consent_version: str
     signup_limit_per_min: int
+    audio_dir: Path
+    public_audio_base: str
+    tts_endpoints: list[str]
+    tts_key: str
+    tts_max_concurrency: int
+    tts_start_timeout_s: float
+    tts_total_timeout_s: float
+    tts_limit_per_min: int
+    cache_hours: int = 24
+    tts_request_timeout_s: float = 30
     token_days: int = 30
 
 
@@ -31,4 +41,12 @@ def load_settings() -> Settings:
         voices_json=Path(os.getenv("VOICES_JSON", str(DEFAULT_VOICES_JSON))),
         consent_version=os.getenv("CONSENT_VERSION", "event-2026-11-v1"),
         signup_limit_per_min=int(os.getenv("SIGNUP_LIMIT_PER_MIN", "30")),
+        audio_dir=Path(os.getenv("AUDIO_DIR", "./data/audio")),
+        public_audio_base=os.getenv("PUBLIC_AUDIO_BASE", "/a").rstrip("/"),
+        tts_endpoints=[u.strip().rstrip("/") for u in os.getenv("TTS_ENDPOINTS", "").split(",") if u.strip()],
+        tts_key=os.getenv("TTS_KEY", ""),
+        tts_max_concurrency=int(os.getenv("TTS_MAX_CONCURRENCY", "4")),
+        tts_start_timeout_s=int(os.getenv("TTS_START_TIMEOUT_MS", "2500")) / 1000,
+        tts_total_timeout_s=int(os.getenv("TTS_TOTAL_TIMEOUT_MS", "4000")) / 1000,
+        tts_limit_per_min=int(os.getenv("TTS_LIMIT_PER_MIN", "20")),
     )
