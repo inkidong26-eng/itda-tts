@@ -78,6 +78,19 @@ export function chooseVoice(token: string, voiceId: string) {
   return request<{ ok: boolean }>("PATCH", "/me", token, { voiceId });
 }
 
+export type TtsResult = {
+  url: string | null;
+  durationMs: number | null;
+  cached: boolean;
+  fallback: boolean;
+  displayText: string; // 비상 음성이 읽을 글 (정규화됨)
+};
+
+/** 글 → 음성. 서버는 4초 안에 반드시 답한다 (늦으면 fallback:true) */
+export function speak(token: string, text: string, voiceId: string) {
+  return request<TtsResult>("POST", "/tts", token, { text, voiceId });
+}
+
 /** 음성 서버 미리 깨우기. 실패해도 앱은 계속 (아직 /tts/warmup 이 없으면 무시) */
 export function warmup(): void {
   request("POST", "/tts/warmup").catch(() => undefined);
