@@ -4,6 +4,7 @@ import { emotionInfo, type EmotionResult } from "../emotion/types";
 import type { Message } from "../storage/history";
 import { DEFAULT_FAVORITES } from "../lib/favorites";
 import { EmotionChips, finalEmotion, type Manual } from "./EmotionChips";
+import { SpeakingBar } from "./Feedback";
 import { Button } from "./ui";
 
 export type LiveState = "sending" | "queued" | "playing" | "done" | "failed";
@@ -65,6 +66,7 @@ export function MessageList({ messages, live, onRetry }: {
               {m.text}
               {m.emotion && m.emotion.tremor > 0 && <span aria-label="떨림" className="ml-1">{"〰".repeat(m.emotion.tremor)}</span>}
             </p>
+            {live[m.id] && <div className="mt-1 w-1/2"><SpeakingBar id={m.id} color={emo?.color ?? "#1A9A9A"} /></div>}
             {status && <p className={`mt-1 text-base ${TONE[status.tone]}`}>{status.text}</p>}
             {failed && (
               <button type="button" onClick={() => onRetry(m)}

@@ -30,6 +30,16 @@ export function SettingsPage({ view, onView, onHome }: {
         </div>
       </fieldset>
 
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 font-semibold">말할 때 알림</legend>
+        <Button variant="choice" selected={view.vibrate} onClick={() => onView({ ...view, vibrate: !view.vibrate })}>
+          📳 진동 {view.vibrate ? "켜짐" : "꺼짐"} <span className="font-normal">(안드로이드)</span>
+        </Button>
+        <Button variant="choice" selected={view.glow} onClick={() => onView({ ...view, glow: !view.glow })}>
+          💡 테두리 빛 {view.glow ? "켜짐" : "꺼짐"} <span className="font-normal">(아이폰 권장)</span>
+        </Button>
+      </fieldset>
+
       <section className="flex flex-col gap-2">
         <h2 className="font-semibold">대화 기록</h2>
         <p className="text-muted">대화 기록은 이 폰에만 저장돼요. 서버에는 남지 않아요.</p>
@@ -45,7 +55,7 @@ export function SettingsPage({ view, onView, onHome }: {
         {cleared && <Notice kind="info">✅ 대화 기록을 지웠어요</Notice>}
       </section>
 
-      <p className="text-muted">🛠️ 목소리 바꾸기, 말하기 속도, 진동·테두리 빛 설정은 준비 중이에요.</p>
+      <p className="text-muted">🛠️ 목소리 바꾸기, 말하기 속도는 준비 중이에요.</p>
     </Screen>
   );
 }

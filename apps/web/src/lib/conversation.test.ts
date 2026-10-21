@@ -104,11 +104,11 @@ describe("화면 설정", () => {
       getItem: (k: string) => data.get(k) ?? null,
       setItem: (k: string, v: string) => void data.set(k, v),
     });
-    expect(loadView()).toEqual({ font: 0, showTop: true });
-    saveView({ font: 2, showTop: false });
-    expect(loadView()).toEqual({ font: 2, showTop: false });
+    expect(loadView()).toEqual({ font: 0, showTop: true, vibrate: true, glow: false });
+    saveView({ font: 2, showTop: false, vibrate: false, glow: true });
+    expect(loadView()).toEqual({ font: 2, showTop: false, vibrate: false, glow: true });
     data.set("itda.view", '{"font":9,"showTop":"x"}');
-    expect(loadView()).toEqual({ font: 0, showTop: true });
+    expect(loadView()).toEqual({ font: 0, showTop: true, vibrate: true, glow: false });
   });
 });
 

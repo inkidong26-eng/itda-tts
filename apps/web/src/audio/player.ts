@@ -11,7 +11,7 @@ export type PlayerEvent =
   | { type: "queued"; id: string }
   | { type: "start"; id: string; source: Source; durationSec?: number }
   | { type: "level"; id: string; level: number; progress: number }
-  | { type: "boundary"; id: string; charIndex: number }
+  | { type: "boundary"; id: string; charIndex: number; progress: number } // 기본 음성이 읽는 글자 위치 (0~1)
   | { type: "silence"; id: string }
   | { type: "fallback"; id: string; reason: "server" | "audio-error" }
   | { type: "end"; id: string; source: Source }
@@ -74,7 +74,12 @@ export function createPlayer(deps: PlayerDeps) {
   let speaking: Utterance | null = null; // 크롬이 말하는 도중 이 객체를 치워 버리지 않게 붙잡아 둔다
   let warmed = false;
 
-  const emit = (e: PlayerEvent) => listeners.forEach((l) => l(e));
+  let current: { id: string; source: Source } | null = null; // 지금 소리 내는 것 (늦게 구독한 화면도 알 수 있게)
+  const emit = (e: PlayerEvent) => {
+    if (e.type === "start") current = { id: e.id, source: e.source };
+    if ((e.type === "end" || e.type === "error") && current?.id === e.id) current = null;
+    listeners.forEach((l) => l(e));
+  };
 
   function context(): AudioContext | null {
     if (!ctx) {
@@ -204,7 +209,10 @@ export function createPlayer(deps: PlayerDeps) {
           end({ type: "end", id: item.id, source: "fallback" });
         }, END_GRACE_MS + item.text.length * SPEECH_MS_PER_CHAR);
       };
-      u.onboundary = (e) => emit({ type: "boundary", id: item.id, charIndex: e.charIndex });
+      u.onboundary = (e) => emit({
+        type: "boundary", id: item.id, charIndex: e.charIndex,
+        progress: Math.min(1, e.charIndex / Math.max(1, item.text.length)),
+      });
       u.onend = () => end({ type: "end", id: item.id, source: "fallback" });
       u.onerror = () => end({ type: "error", id: item.id, reason: "speech-error" });
       stopCurrent = () => { speech.cancel(); end({ type: "end", id: item.id, source: "fallback" }); };
@@ -253,6 +261,10 @@ export function createPlayer(deps: PlayerDeps) {
       emit({ type: "queued", id });
       void run();
       return id;
+    },
+    /** 지금 소리 내는 항목 (없으면 null) */
+    nowPlaying(): { id: string; source: Source } | null {
+      return current;
     },
     /** 화면이 받을 재생 신호. 돌려준 함수를 부르면 그만 받는다. */
     subscribe(listener: (e: PlayerEvent) => void): () => void {

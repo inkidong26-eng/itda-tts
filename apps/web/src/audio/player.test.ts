@@ -208,6 +208,15 @@ describe("큐가 멈추지 않게 (무음 금지)", () => {
   });
 });
 
+it("지금 소리 내는 항목을 알려 준다 (늦게 붙은 화면용)", async () => {
+  const r = record();
+  r.player.enqueue({ id: "a", url: "ok-300", text: "a" });
+  await r.until(() => r.events.some((e) => e.type === "start"));
+  expect(r.player.nowPlaying()).toEqual({ id: "a", source: "server" });
+  await r.until(() => r.done("a"));
+  expect(r.player.nowPlaying()).toBeNull();
+});
+
 it("한국어 기본 음성 목록", () => {
   const r = record();
   expect(r.player.koreanVoices()).toEqual(["Yuna (ko-KR)"]);

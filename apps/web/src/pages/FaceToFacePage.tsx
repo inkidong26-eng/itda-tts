@@ -1,9 +1,11 @@
 // S6 마주보고 대화 (02 문서). 위쪽은 180° 뒤집어 맞은편 청인이 읽고, 아래쪽은 농인이 쓴다.
 // 약속: 보낸 글은 어떤 오류에서도 소리로 나간다 (서버가 안 되면 폰 기본 음성).
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, speak, type TtsResult } from "../api/client";
 import { type PlayerEvent, player, unlockAudio } from "../audio/player";
 import { Composer, type Live, MessageList } from "../components/Conversation";
+import { EdgeGlow, HighlightText, SpeakingBar } from "../components/Feedback";
+import { useNowPlaying, useVibration } from "../feedback/hooks";
 import type { Turn } from "../emotion/context";
 import { emotionInfo, type EmotionResult } from "../emotion/types";
 import { Notice } from "../components/ui";
@@ -29,6 +31,8 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
   const [live, setLive] = useState<Record<string, Live>>({});
   const [problem, setProblem] = useState<"offline" | "auth" | "busy" | "empty" | null>(null);
   const inOrder = useMemo(() => createOrdered(), []);
+  const nowPlaying = useNowPlaying();
+  useVibration(view.vibrate);
 
   useEffect(() => {
     let alive = true;
@@ -105,19 +109,28 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost }: Pr
     () => messages.slice(-3).map((m) => ({ role: m.role, text: m.text, emotion: m.emotion })),
     [messages],
   );
-  const edge = lastMine?.emotion ? emotionInfo(lastMine.emotion.emotion).color : "#1A9A9A";
+  // 위쪽에는 지금 말하는 문장을, 말하는 중이 아니면 마지막으로 보낸 문장을 보여 준다
+  const topMessage = (nowPlaying && messages.find((m) => m.id === nowPlaying)) || lastMine;
+  const colorOf = (m?: Message) => (m?.emotion ? emotionInfo(m.emotion.emotion).color : "#1A9A9A");
+  const edge = colorOf(topMessage);
+  const latest = useRef(messages);
+  latest.current = messages;
+  const colorFor = useCallback((id: string) => colorOf(latest.current.find((m) => m.id === id)), []);
   const font = FONT_STEPS[view.font];
 
   return (
     <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
+      <EdgeGlow enabled={view.glow} colorFor={colorFor} />
       {view.showTop && (
         <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
           {/* 180° 돌려 놓았으므로 border-t 가 화면에서는 위·아래 경계선(가운데)에 보인다 */}
-          {/* "말하는 중" 막대·단어 하이라이트(T14) 자리 */}
-          <p className={`text-center font-bold leading-snug text-ink ${(lastMine?.text.length ?? 0) > 40 ? "text-2xl" : "text-3xl"}`}>
-            {lastMine?.emotion && <span aria-hidden="true">{emotionInfo(lastMine.emotion.emotion).icon} </span>}
-            {lastMine?.text ?? "안녕하세요. 저는 글로 말해요. 제 말은 목소리로 들리고 여기에도 크게 보여요."}
+          <p className={`text-center font-bold leading-snug text-ink ${(topMessage?.text.length ?? 0) > 40 ? "text-2xl" : "text-3xl"}`}>
+            {topMessage?.emotion && <span aria-hidden="true">{emotionInfo(topMessage.emotion.emotion).icon} </span>}
+            {topMessage
+              ? <HighlightText id={topMessage.id === nowPlaying ? nowPlaying : undefined} text={topMessage.text} color={edge} />
+              : "안녕하세요. 저는 글로 말해요. 제 말은 목소리로 들리고 여기에도 크게 보여요."}
           </p>
+          <div className="mt-3 min-h-3"><SpeakingBar id={nowPlaying ?? undefined} color={edge} /></div>
         </section>
       )}
 

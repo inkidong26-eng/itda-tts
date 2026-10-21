@@ -7,18 +7,26 @@ export const FONT_STEPS = [
   { label: "아주 크게", scale: 1.45 },
 ] as const;
 
-export type ViewSettings = { font: FontStep; showTop: boolean };
+export type ViewSettings = { font: FontStep; showTop: boolean; vibrate: boolean; glow: boolean };
 
 const KEY = "itda.view";
-const DEFAULTS: ViewSettings = { font: 0, showTop: true };
+// 테두리 빛은 아이폰 기본(진동이 안 되므로), 안드로이드는 켜서 쓸 수 있다 (05 문서 6절)
+const isIOS = () => typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+const defaults = (): ViewSettings => ({ font: 0, showTop: true, vibrate: true, glow: isIOS() });
 
 export function loadView(): ViewSettings {
   try {
+    const d = defaults();
     const data = JSON.parse(localStorage.getItem(KEY) || "{}");
-    const font = [0, 1, 2].includes(data.font) ? (data.font as FontStep) : DEFAULTS.font;
-    return { font, showTop: typeof data.showTop === "boolean" ? data.showTop : DEFAULTS.showTop };
+    const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
+    return {
+      font: [0, 1, 2].includes(data.font) ? (data.font as FontStep) : d.font,
+      showTop: bool(data.showTop, d.showTop),
+      vibrate: bool(data.vibrate, d.vibrate),
+      glow: bool(data.glow, d.glow),
+    };
   } catch {
-    return { ...DEFAULTS };
+    return defaults();
   }
 }
 
