@@ -46,6 +46,7 @@ export function StartPage({ onStart }: { onStart: () => void }) {
       }
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <img src="/logo.png" alt="" width={512} height={512} className="h-auto w-48 max-w-[55vw]" />
         <p className="text-5xl font-extrabold text-navy">ITDA</p>
         <p className="text-2xl font-bold text-brand-dark">잇다</p>
         <p className="text-xl font-semibold">소리가 없어도, 우리는 이어집니다.</p>
