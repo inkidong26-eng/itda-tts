@@ -4,12 +4,12 @@
 
 ```
                        ┌──────────────────────────────┐
- 농인 폰 / 청인 폰  ──▶ │ itda.gyeot.ai.kr  (웹앱 PWA)   │  정적 호스팅 + 무료 HTTPS
+ 농인 폰 / 청인 폰  ──▶ │ itda.gyeot.ai.kr  (웹앱 PWA)   │  VPS의 Caddy가 화면 파일 제공 + 무료 HTTPS
  (브라우저)            └──────────────────────────────┘
-        │  HTTPS / WebSocket
+        │  같은 주소의 /api (HTTPS / WebSocket)
         ▼
  ┌─────────────────────────────────────────┐         ┌───────────────────────────┐
- │ api.itda.gyeot.ai.kr  (FastAPI, 항상 켜짐) │ ──────▶ │ TTS 서버 (GPU, Qwen3-TTS)   │  필요할 때 켜기
+ │ itda.gyeot.ai.kr/api  (FastAPI, 항상 켜짐) │ ──────▶ │ TTS 서버 (GPU, Qwen3-TTS)   │  필요할 때 켜기
  │ - 가입·음성 목록·감정 분석                    │  비밀키  │ - /synthesize              │  행사 당일 1~2대
  │ - TTS 요청 분배·대기열·캐시·비상 전환           │         │ - /warmup, /health         │
  │ - 통화 방(WebSocket)                        │         │ - (선택) /stt  Whisper      │
@@ -55,15 +55,15 @@ itda-tts/
 ## 4. 호스팅과 도메인
 | 주소 | 대상 | DNS 설정 (도메인 관리 화면) |
 |---|---|---|
-| `itda.gyeot.ai.kr` | 웹앱 정적 호스팅 (Cloudflare Pages 등 무료 플랜) | `CNAME` → 호스팅 업체가 알려준 주소 |
-| `api.itda.gyeot.ai.kr` | 소형 VPS (Docker: API + Caddy) | `A` → VPS 공인 IP |
+| `itda.gyeot.ai.kr` | 소형 VPS 한 대 (Docker: API + Caddy). Caddy가 웹앱 화면 파일과 `/api` → API 둘 다 제공 | `A` → VPS 공인 IP |
 | (선택) `tts.itda.gyeot.ai.kr` | GPU 서버 | 업체 방식에 따라 `CNAME` |
 
-- `gyeot.ai.kr` 의 DNS를 어디서 관리하는지 확인 필요 (10 문서 확인 사항). 위 레코드 2~3줄만 추가하면 된다.
+- 주소를 하나로 합쳤다 (10 문서 결정 23): 화면과 API가 같은 주소라 CORS 설정이 필요 없고, https 인증서도 1개다.
+- DNS 관리처는 호스팅케이알(hosting.kr). `A` 레코드 1줄만 추가하면 된다.
 - VPS는 **한국 또는 가까운 지역**을 고른다 (응답 속도).
 - GPU 서버: 평소에는 시간 단위 임대 GPU(RTX 4090급 24GB)를 **개발·시연할 때만 켜고 끈다.** 행사 당일은 1대(+선택 예비 1대)를 아침부터 켜 둔다 (08 문서). 실제 서비스 단계에서 국내 클라우드 GPU로 옮긴다.
 
-## 5. API 명세 (`https://api.itda.gyeot.ai.kr`)
+## 5. API 명세 (`https://itda.gyeot.ai.kr/api`)
 모든 요청은 `Authorization: Bearer {guestToken}` (가입·통화 참여·상태 확인 제외).
 
 | 메서드·경로 | 설명 | 요청 → 응답 |
@@ -124,7 +124,7 @@ events(id INTEGER PK, type TEXT, ms INTEGER, fallback INTEGER, created_at TEXT) 
 ## 8. 보안·제한
 - 게스트 토큰: 서버 비밀키로 서명한 토큰 (유효 30일).
 - 요청 제한: 사용자당 `/tts` 분당 20회, IP당 가입 분당 30회 (부스 와이파이는 여러 명이 IP 하나를 같이 씀). 넘으면 "잠시 후 다시 보내 주세요".
-- CORS: `https://itda.gyeot.ai.kr` 만 허용.
+- CORS: 같은 주소라 필요 없지만, 안전을 위해 `https://itda.gyeot.ai.kr` 만 허용해 둔다.
 - 비밀값은 `.env` 로만 관리하고 Git에 올리지 않는다.
 
 ## 9. 환경 변수
@@ -134,7 +134,7 @@ APP_SECRET=...
 DATABASE_URL=sqlite+aiosqlite:///./data/itda.db   # 출시판: postgresql+asyncpg://...
 AUDIO_DIR=./data/audio                            # storage.py 가 음성 파일을 저장하는 곳
 ALLOWED_ORIGIN=https://itda.gyeot.ai.kr
-PUBLIC_AUDIO_BASE=https://api.itda.gyeot.ai.kr/a
+PUBLIC_AUDIO_BASE=/api/a                          # 같은 주소라 앞부분 생략
 TTS_ENDPOINTS=https://gpu1.example/,https://gpu2.example/
 TTS_KEY=...
 TTS_MAX_CONCURRENCY=4
@@ -144,8 +144,8 @@ EMOTION_LLM_ENABLED=false
 EMOTION_LLM_API_KEY=
 STT_SERVER_ENABLED=false
 WEB_BASE=https://itda.gyeot.ai.kr      # 통화 참여 링크(QR) 주소
-# apps/web/.env
-VITE_API_BASE=https://api.itda.gyeot.ai.kr
+# apps/web/.env — 비워 두면 같은 주소의 /api 를 쓴다 (기본값)
+VITE_API_BASE=
 ```
 
 ## 10. 확장 대비 설계 원칙 (20~30만 명까지)

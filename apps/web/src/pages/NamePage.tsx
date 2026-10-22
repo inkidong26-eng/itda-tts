@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Button, Notice, Screen } from "../components/ui";
 import { cleanName, nameError } from "../lib/labels";
 
-// 보관 기간은 10 문서 Q2에서 정한 뒤 바꾼다
-export const CONSENT_TEXT = "행사 체험을 위해 이름을 저장하는 데 동의합니다. 행사 후 ○○일 이내 삭제됩니다.";
+// 보관 기간: 10 문서 Q2 (행사 11/13 후 30일)
+export const CONSENT_TEXT = "행사 체험을 위해 이름을 저장하는 데 동의합니다. 행사 후 30일 이내 삭제됩니다.";
 
 /** S2 이름 입력 */
 export function NamePage({ initial, onBack, onNext }: {
