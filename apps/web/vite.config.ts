@@ -5,6 +5,8 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // 실제 폰 시험용 임시 https 주소(cloudflared)를 허용 — 개발 서버에만 적용
+    allowedHosts: [".trycloudflare.com"],
     // 개발 중에는 /api 를 내 컴퓨터의 API 서버로 넘긴다 (폰에서 시험할 때 주소 하나로 충분)
     proxy: {
       "/api": { target: "http://127.0.0.1:8000", ws: true, rewrite: (p) => p.replace(/^\/api/, "") }, // ws: 링크 통화

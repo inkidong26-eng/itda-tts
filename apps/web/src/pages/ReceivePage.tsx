@@ -82,6 +82,7 @@ export function ReceivePage({ callId }: { callId: string }) {
       },
       onSpeaking: (active) => c.send({ type: "speaking", level: active ? 1 : 0 }),
       onError: (kind) => {
+        rec.current?.stop(); // 오류 뒤에 저절로 다시 켜지지 않게 (화면은 꺼짐인데 듣는 일이 없도록)
         setMic("off");
         setMicProblem(kind === "denied" ? "마이크를 허용하지 않았어요. 글로 답해 주세요" : "말로 답하기가 안 돼요. 글로 답해 주세요");
       },

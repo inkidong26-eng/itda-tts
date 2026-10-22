@@ -11,6 +11,7 @@ import { emotionInfo, type EmotionResult } from "../emotion/types";
 import { Notice } from "../components/ui";
 import { createOrdered } from "../lib/ordered";
 import { speechText } from "../lib/speechText";
+import { useCaptions } from "../stt/useCaptions";
 import { history, type Message } from "../storage/history";
 import type { Session } from "../storage/local";
 import { FONT_STEPS, type ViewSettings } from "../storage/settings";
@@ -72,6 +73,13 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
 
   useEffect(() => () => player.stopAll(), []);
 
+  // 청인 말 자막 (T11): 확정된 말만 대화 기록에 '상대' 말풍선으로 남긴다
+  const captions = useCaptions((text) => {
+    const message: Message = { id: newId(), role: "other", text, at: Date.now() };
+    setMessages((list) => [...list, message]);
+    void history.put(message);
+  });
+
   const send = (text: string, emotion?: EmotionResult, existing?: Message) => {
     unlockAudio(); // 보내기 터치 안에서 소리 장치를 깨운다 (아이폰)
     if (!speechText(text)) {
@@ -123,7 +131,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
     <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
       <EdgeGlow enabled={view.glow} colorFor={colorFor} />
       {view.showTop && !speaker && (
-        <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
+        <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] [@media(max-height:700px)]:basis-[22%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
           {/* 180° 돌려 놓았으므로 border-t 가 화면에서는 위·아래 경계선(가운데)에 보인다 */}
           <p className={`text-center font-bold leading-snug text-ink ${(topMessage?.text.length ?? 0) > 40 ? "text-2xl" : "text-3xl"}`}>
             {topMessage?.emotion && <span aria-hidden="true">{emotionInfo(topMessage.emotion.emotion).icon} </span>}
@@ -163,7 +171,23 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border-2 border-gray-200 p-3">
           <MessageList messages={messages} live={live} onRetry={(m) => send(m.text, undefined, m)} />
         </div>
-        {/* 청인 말 자막(T11) 자리 */}
+        {!speaker && (
+          <>
+            {/* 공간이 좁으므로 안내·중간 결과는 한 줄에 */}
+            <p className={`min-h-[1.5em] shrink-0 text-base ${captions.problem ? "font-semibold text-red-800" : "text-muted"}`} aria-live="polite">
+              {captions.problem === "unsupported" ? "이 폰(브라우저)은 자막이 안 돼요. 상대에게 글로 써 달라고 해 주세요"
+                : captions.problem === "denied" ? "마이크를 허용해 주세요 (주소창 자물쇠 → 마이크)"
+                : captions.problem === "other" ? "자막이 멈췄어요. 아래 버튼을 다시 눌러 주세요"
+                : captions.interim ? `🎤 ${captions.interim}` : captions.on && captions.speaking ? "🎤 상대가 말하는 중…" : ""}
+            </p>
+            {captions.problem !== "unsupported" && (
+              <button type="button" onClick={captions.toggle} aria-pressed={captions.on}
+                className={`min-h-[56px] shrink-0 rounded-xl border-2 text-lg font-bold ${captions.on ? "border-brand-dark bg-teal-50 text-ink" : "border-navy text-navy"}`}>
+                {captions.on ? "🎤 상대 말 듣는 중 · 끄기" : "🎤 상대 말 자막 켜기"}
+              </button>
+            )}
+          </>
+        )}
         <Composer recent={recent} onSend={(t, e) => send(t, e)} />
       </section>
     </main>
