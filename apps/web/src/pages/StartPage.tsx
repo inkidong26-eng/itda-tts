@@ -46,8 +46,8 @@ export function StartPage({ onStart }: { onStart: () => void }) {
       }
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <img src="/logo.png" alt="" width={512} height={512} className="h-auto w-48 max-w-[55vw]" />
-        <p className="text-5xl font-extrabold text-navy">ITDA</p>
+        {/* 다리 로고 안에 ITDA 글자가 들어 있다 */}
+        <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-80 max-w-[85vw]" />
         <p className="text-2xl font-bold text-brand-dark">잇다</p>
         <p className="text-xl font-semibold">소리가 없어도, 우리는 이어집니다.</p>
         <p className="text-muted">이 앱은 글을 목소리로 바꿔 상대에게 들려줘요. 상대방은 설치가 필요 없어요.</p>
