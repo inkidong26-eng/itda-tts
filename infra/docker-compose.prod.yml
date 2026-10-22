@@ -1,0 +1,44 @@
+# 배포용 (VPS 한 대). 실행: infra/deploy.sh
+# - web: Caddy (80·443 열림, https 자동) + 화면 파일
+# - api: 바깥에 열지 않고 web 을 통해서만 들어온다
+services:
+  api:
+    build: ../services/api
+    env_file:
+      - ../services/api/.env
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////app/data/itda.db
+      AUDIO_DIR: /app/data/audio
+      VOICES_JSON: /app/voices.json
+    # Caddy 뒤에 있으므로 실제 접속 IP(가입 제한용)를 Caddy 가 알려 준 값으로 쓴다
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1",
+              "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
+    volumes:
+      - ../services/api/data:/app/data
+      - ../services/tts/voices.json:/app/voices.json:ro
+    restart: unless-stopped
+    logging:
+      options: { max-size: "10m", max-file: "3" }
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-itda.gyeot.ai.kr}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+    logging:
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  caddy_data:
+  caddy_config:
