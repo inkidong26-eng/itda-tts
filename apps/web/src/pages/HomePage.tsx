@@ -43,14 +43,14 @@ export function HomePage({ session, onSoon }: { session: Session; onSoon: (what:
       </section>
 
       <button type="button" onClick={() => onSoon("마주보고 대화")}
-        className="flex flex-col gap-2 rounded-3xl bg-gradient-to-br from-[#0e6582] to-brand-dark p-5 text-left text-white shadow-md active:opacity-90">
+        className="flex flex-col gap-2 rounded-3xl bg-[#0f766e] p-5 text-left text-white shadow-md active:opacity-90">
         <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-sm font-semibold">● 추천 · 폰 하나로 마주 앉아</span>
         <span className="text-3xl font-bold">🧑‍🤝‍🧑 마주보고 대화 →</span>
         <span className="text-base text-white/90">탁자에 폰을 두고, 내 글은 목소리로, 상대 말은 글자로 나눠 봐요.</span>
       </button>
 
       <button type="button" onClick={() => onSoon("전화로 대화")}
-        className="flex flex-col gap-2 rounded-3xl bg-slate-800 p-5 text-left text-white shadow-md active:opacity-90">
+        className="flex flex-col gap-2 rounded-3xl bg-[#0e5a7a] p-5 text-left text-white shadow-md active:opacity-90">
         <span className="w-fit rounded-full bg-white/15 px-3 py-1 text-sm font-semibold">🔗 링크 보내기 · 스피커 방식</span>
         <span className="text-3xl font-bold">📞 전화로 대화 →</span>
         <span className="text-base text-white/90">상대에게 링크를 보내거나, 일반 전화 중에 스피커로 써요.</span>
