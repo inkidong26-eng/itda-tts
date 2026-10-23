@@ -29,9 +29,9 @@ export function Button({
 export type Step = { n: number; total: number; label: string };
 
 /** 한 화면 틀: 폭 360px에서도 가로 스크롤 없게. 화면마다 따로 꾸미지 않고 여기서 모양을 맞춘다 */
-export function Screen({ title, children, footer, step }: { title?: string; children: ReactNode; footer?: ReactNode; step?: Step }) {
+export function Screen({ title, children, footer, step, white }: { title?: string; children: ReactNode; footer?: ReactNode; step?: Step; white?: boolean }) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-slate-50 px-4 py-6">
+    <main className={`mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6 ${white ? "bg-white" : "bg-slate-50"}`}>
       {step && (
         <div className="mb-4" aria-label={`${step.total}단계 중 ${step.n}단계`}>
           <p className="mb-2 flex justify-between text-sm font-semibold text-muted">

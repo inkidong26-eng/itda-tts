@@ -28,9 +28,10 @@ export function StartPage({ onStart }: { onStart: () => void }) {
 
   return (
     <Screen
+      white
       footer={
         <>
-          <Button onClick={start} className="!min-h-[64px] !text-xl">대화 시작하기 →</Button>
+          <Button onClick={start} className="!min-h-[64px] !text-xl">시작하기 →</Button>
           <p className="text-center text-base text-muted">
             {install ? (
               <button type="button" className="min-h-[56px] font-semibold text-navy underline" onClick={() => void install.prompt()}>
@@ -45,23 +46,12 @@ export function StartPage({ onStart }: { onStart: () => void }) {
         </>
       }
     >
-      <div className="flex flex-1 flex-col justify-center gap-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         {/* 다리 로고 안에 ITDA 글자가 들어 있다 */}
-        <img src="/logo.png" alt="ITDA" width={720} height={199} className="mx-auto h-auto w-64 max-w-[75vw]" />
-        <div>
-          <h1 className="text-2xl font-bold leading-snug">글과 소리로 서로를 잇는 <span className="text-brand-dark">잇다</span></h1>
-          <p className="mt-2 text-lg text-muted">내 글은 목소리로, 상대 말은 글자로. 상대방은 설치 없이 바로 대화해요.</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2 rounded-2xl bg-sky-50 p-3">
-            <span aria-hidden="true" className="text-2xl">✍️</span>
-            <span><span className="block font-bold">글 → 목소리</span><span className="block text-sm text-muted">내 목소리로 들려줘요</span></span>
-          </div>
-          <div className="flex items-center gap-2 rounded-2xl bg-orange-50 p-3">
-            <span aria-hidden="true" className="text-2xl">👂</span>
-            <span><span className="block font-bold">말 → 글자</span><span className="block text-sm text-muted">큰 글씨 자막</span></span>
-          </div>
-        </div>
+        <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-80 max-w-[85vw]" />
+        <p className="text-2xl font-bold text-brand-dark">잇다</p>
+        <p className="text-xl font-semibold">소리가 없어도, 우리는 이어집니다.</p>
+        <p className="text-muted">이 앱은 글을 목소리로 바꿔 상대에게 들려줘요. 상대방은 설치가 필요 없어요.</p>
       </div>
     </Screen>
   );

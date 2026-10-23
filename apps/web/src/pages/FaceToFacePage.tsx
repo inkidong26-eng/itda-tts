@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, speak, type TtsResult } from "../api/client";
 import { type PlayerEvent, player, unlockAudio } from "../audio/player";
 import { Composer, type Live, MessageList } from "../components/Conversation";
-import { EdgeGlow, HighlightText, SpeakingBar } from "../components/Feedback";
+import { EdgeGlow, HighlightText } from "../components/Feedback";
 import { useNowPlaying, useVibration } from "../feedback/hooks";
 import type { Turn } from "../emotion/context";
 import { emotionInfo, type EmotionResult } from "../emotion/types";
@@ -139,7 +139,6 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
               ? <HighlightText id={topMessage.id === nowPlaying ? nowPlaying : undefined} text={topMessage.text} color={edge} />
               : "안녕하세요. 저는 글로 말해요. 제 말은 목소리로 들리고 여기에도 크게 보여요."}
           </p>
-          <div className="mt-3 min-h-3"><SpeakingBar id={nowPlaying ?? undefined} color={edge} /></div>
         </section>
       )}
 

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, getCall } from "../api/client";
 import { player, unlockAudio } from "../audio/player";
 import { CallConnection, type CallMessage, type ConnState, wsUrl } from "../call/connection";
-import { HighlightText, SpeakingBar } from "../components/Feedback";
+import { HighlightText } from "../components/Feedback";
 import { Button, Notice, Screen } from "../components/ui";
 import { emotionInfo, type EmotionCode } from "../emotion/types";
 import { Recognizer, sttSupported } from "../stt/recognizer";
@@ -108,34 +108,29 @@ export function ReceivePage({ callId }: { callId: string }) {
   if (phase === "ended") return <Screen title="📞 통화가 끝났어요"><p>이용해 주셔서 고마워요.</p></Screen>;
 
   if (phase === "intro") {
-    // 안내만 바꿈. 마이크 막대 같은 상태 표시는 시작 전에는 실제 신호가 없으므로 넣지 않는다
+    // 안내만. 마이크 막대 같은 상태 표시는 시작 전에는 실제 신호가 없으므로 넣지 않는다
     const TIPS = [
-      { icon: "🔊", tone: "bg-orange-50", title: "폰 소리를 크게 해 주세요", text: `${deafName}님이 쓴 글을 ITDA가 목소리로 읽어 드려요.` },
-      { icon: "🗣️", tone: "bg-sky-50", title: "평소처럼 말씀해 주세요", text: `하신 말씀은 글자로 ${deafName}님 화면에 보여요.` },
-      { icon: "✅", tone: "bg-lime-50", title: "설치·가입이 필요 없어요", text: "이 화면에서 바로 대화해요." },
+      { icon: "🔊", tone: "bg-orange-50", title: "폰 소리를 크게 해 주세요", text: "" },
+      { icon: "🗣️", tone: "bg-sky-50", title: "평소처럼 말씀하세요", text: `말씀은 글자로 ${deafName}님께 보여요.` },
     ];
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 bg-slate-50 px-4 py-4">
-        <header className="flex items-center gap-3">
-          <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-28" />
-          <p className="text-base font-semibold text-muted">설치 없이 바로 쓰는 대화</p>
-        </header>
+        <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-32" />
 
-        <section className="flex flex-col items-center gap-2 rounded-3xl bg-white px-5 py-5 text-center shadow-sm">
-          <span aria-hidden="true" className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 text-3xl">💬</span>
+        <section className="flex flex-col gap-2 rounded-3xl bg-white px-5 py-6 text-center shadow-sm">
           <h1 className="text-2xl font-bold leading-snug">{deafName}님이 대화를 요청했어요</h1>
           <p className="text-lg leading-relaxed">
             {deafName}님은 <b className="text-navy">글로 말하고</b>,<br />ITDA가 <b className="text-brand-dark">목소리로 들려드려요</b>.
           </p>
         </section>
 
-        <section aria-label="대화 안내" className="flex flex-col gap-2 rounded-3xl bg-white p-4 shadow-sm">
+        <section aria-label="대화 안내" className="flex flex-col gap-2">
           {TIPS.map((t) => (
-            <div key={t.title} className={`flex items-start gap-3 rounded-2xl p-3 ${t.tone}`}>
+            <div key={t.title} className={`flex items-start gap-3 rounded-2xl p-4 ${t.tone}`}>
               <span aria-hidden="true" className="text-2xl">{t.icon}</span>
               <div>
                 <p className="text-lg font-bold">{t.title}</p>
-                <p className="text-base text-muted">{t.text}</p>
+                {t.text && <p className="text-base text-muted">{t.text}</p>}
               </div>
             </div>
           ))}
@@ -168,7 +163,6 @@ export function ReceivePage({ callId }: { callId: string }) {
               <HighlightText id={latest.msgId} text={latest.text} color={color} /></>
           ) : "상대방의 글을 기다리는 중이에요"}
         </p>
-        <div className="mt-3 min-h-3"><SpeakingBar id={latest?.msgId} color={color} /></div>
       </section>
 
       {mine && <p className={`text-lg ${mine.final ? "font-semibold" : "text-muted"}`}>🗨️ 내 말: {mine.text}</p>}

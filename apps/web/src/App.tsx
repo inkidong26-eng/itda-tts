@@ -84,13 +84,12 @@ export default function App() {
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
         <VoicePage session={session} onAuthLost={restart} onRestart={restart}
-          onBack={session.voiceId ? () => setView({ name: "home" }) : undefined}
           onChosen={(v) => { keep({ ...session, voiceId: v.id, voiceName: v.name }); setView({ name: "home" }); }} />
       );
     case "home":
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
-        <HomePage session={session} onVoice={() => setView({ name: "voice" })} onSoon={(what) => setView(
+        <HomePage session={session} onSoon={(what) => setView(
           what === "마주보고 대화" ? { name: "face" } : what === "전화로 대화" ? { name: "call" }
             : what === "설정" ? { name: "settings" } : { name: "soon", what })} />
       );
@@ -115,7 +114,7 @@ export default function App() {
           onHome={() => setView({ name: "home" })} onAuthLost={restart} />
       );
     case "settings":
-      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} onVoice={() => setView({ name: "voice" })} />;
+      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} />;
     case "soon":
       return <SoonPage what={view.what} onHome={() => setView({ name: "home" })} />;
   }

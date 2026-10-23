@@ -4,11 +4,10 @@ import { Button, Card, Notice, Screen } from "../components/ui";
 import { history } from "../storage/history";
 import { FONT_STEPS, type ViewSettings } from "../storage/settings";
 
-export function SettingsPage({ view, onView, onHome, onVoice }: {
+export function SettingsPage({ view, onView, onHome }: {
   view: ViewSettings;
   onView: (v: ViewSettings) => void;
   onHome: () => void;
-  onVoice: () => void;
 }) {
   const [confirm, setConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
@@ -61,11 +60,7 @@ export function SettingsPage({ view, onView, onHome, onVoice }: {
         {cleared && <Notice kind="info">✅ 대화 기록을 지웠어요</Notice>}
       </Card>
 
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-lg font-bold">🔊 내 목소리</h2>
-        <Button variant="secondary" onClick={onVoice}>목소리 바꾸기 ›</Button>
-        <p className="text-base text-muted">🛠️ 말하기 속도는 준비 중이에요.</p>
-      </Card>
+
     </Screen>
   );
 }

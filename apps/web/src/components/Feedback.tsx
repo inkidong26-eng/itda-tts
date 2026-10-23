@@ -12,12 +12,9 @@ export function SpeakingBar({ id, color, bus }: { id: string | undefined; color:
   const fixed = s.level === null;
   const width = fixed ? 100 : Math.round(15 + s.level! * 85);
   return (
-    <div className="flex w-full items-center gap-2" aria-hidden="true">
-      <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-200">
-        <div className="h-full rounded-full transition-[width] duration-100"
-          style={{ width: `${width}%`, background: color, opacity: fixed ? 0.6 : 0.5 + s.level! * 0.5 }} />
-      </div>
-      {fixed && <span className="text-sm font-semibold text-muted">기본 목소리</span>}
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200" aria-hidden="true">
+      <div className="h-full rounded-full transition-[width] duration-100"
+        style={{ width: `${width}%`, background: color, opacity: fixed ? 0.6 : 0.5 + s.level! * 0.5 }} />
     </div>
   );
 }

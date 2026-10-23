@@ -6,16 +6,16 @@ import type { Session } from "../storage/local";
 
 // 홈에서 바로 말하는 빠른 말 4개 (기록에는 남기지 않는다)
 const QUICK = [
+  { text: "저는 글로 대화해요. 잠시 화면을 봐 주세요", note: "먼저 말 걸기" },
   { text: "안녕하세요", note: "인사" },
   { text: "감사합니다", note: "인사·감사" },
   { text: "잠시만 기다려 주세요", note: "양해 구하기" },
-  { text: "저는 글로 대화해요", note: "농인 안내" },
 ];
 
 let seq = 0;
 
 /** S5 홈 */
-export function HomePage({ session, onSoon, onVoice }: { session: Session; onSoon: (what: string) => void; onVoice: () => void }) {
+export function HomePage({ session, onSoon }: { session: Session; onSoon: (what: string) => void }) {
   // 약속: 어떤 오류에서도 소리로 나간다 (서버가 안 되면 폰 기본 음성)
   const say = (text: string) => {
     unlockAudio();
@@ -44,8 +44,6 @@ export function HomePage({ session, onSoon, onVoice }: { session: Session; onSoo
         <div className="mt-3 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
           <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-dark text-xl text-white">🔊</span>
           <p className="min-w-0 flex-1 text-lg font-bold">내 목소리: {session.voiceName}</p>
-          <button type="button" onClick={onVoice}
-            className="min-h-[48px] shrink-0 whitespace-nowrap rounded-xl border-2 border-gray-300 bg-white px-3 font-semibold">변경 ›</button>
         </div>
       </section>
 
@@ -66,9 +64,9 @@ export function HomePage({ session, onSoon, onVoice }: { session: Session; onSoo
       <section className="rounded-3xl bg-white p-4 shadow-sm">
         <p className="text-lg font-bold">⚡ 자주 쓰는 빠른 말 <span className="text-sm font-normal text-muted">누르면 바로 말해요</span></p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          {QUICK.map((q) => (
+          {QUICK.map((q, i) => (
             <button key={q.text} type="button" onClick={() => say(q.text)}
-              className="relative min-h-[64px] rounded-2xl bg-slate-50 p-3 pr-8 text-left active:bg-slate-200">
+              className={`relative min-h-[64px] rounded-2xl p-3 pr-8 text-left active:bg-slate-200 ${i === 0 ? "col-span-2 bg-teal-50" : "bg-slate-50"}`}>
               <span aria-hidden="true" className="absolute right-2 top-2 text-base">🔊</span>
               <span className="block break-keep font-bold leading-snug">{q.text}</span>
               <span className="block text-sm text-muted">{q.note}</span>

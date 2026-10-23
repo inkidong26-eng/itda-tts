@@ -63,18 +63,17 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
       <Screen title="📞 전화로 대화" footer={<Button variant="secondary" onClick={onHome}>← 홈으로</Button>}>
         {call.notice && <Notice kind="error">{call.notice}</Notice>}
         <Card className="flex flex-col gap-3 border-t-4 border-[#0e6582]">
-          <span className="w-fit rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-800">👍 추천 · 상대는 설치 없이</span>
+          <span className="w-fit rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-800">👍 추천</span>
           <h2 className="text-2xl font-bold">🔗 링크로 전화 걸기</h2>
-          <p className="text-muted">상대에게 링크나 QR을 보내요. 상대는 누르기만 하면 돼요. 내 글은 목소리로, 상대 말은 글자로 와요.</p>
+          <p className="text-muted">상대는 링크만 누르면 돼요. 상대 말도 글자로 볼 수 있어요.</p>
           <Button className="!min-h-[64px] !text-xl" onClick={() => void call.start()} disabled={call.phase === "creating"}>
             {call.phase === "creating" ? "⏳ 링크를 만드는 중…" : "링크 만들기 →"}
           </Button>
         </Card>
         <Card className="flex flex-col gap-3">
-          <h2 className="text-xl font-bold">📱 일반 전화 중에 쓰기 (스피커 방식)</h2>
-          <p className="text-muted">이미 전화 중이면 스피커폰을 켜고 ITDA에 글을 쓰세요. 글이 목소리로 상대에게 들려요.</p>
-          <p className="rounded-2xl bg-orange-50 p-3 text-base text-orange-900">ℹ️ 이 방식은 상대 말이 글자로 나오지 않아요. 자막이 필요하면 위의 링크 방식을 쓰세요.</p>
-          <Button variant="secondary" onClick={onSpeaker}>스피커 방식 안내 보기</Button>
+          <h2 className="text-xl font-bold">📱 일반 전화 중에 쓰기</h2>
+          <p className="text-muted">상대 말 자막은 안 나와요.</p>
+          <Button variant="secondary" onClick={onSpeaker}>방법 보기 →</Button>
         </Card>
       </Screen>
     );
