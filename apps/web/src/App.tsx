@@ -89,7 +89,7 @@ export default function App() {
     case "home":
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
-        <HomePage session={session} onSoon={(what) => setView(
+        <HomePage session={session} onVoice={() => setView({ name: "voice" })} onSoon={(what) => setView(
           what === "마주보고 대화" ? { name: "face" } : what === "전화로 대화" ? { name: "call" }
             : what === "설정" ? { name: "settings" } : { name: "soon", what })} />
       );
