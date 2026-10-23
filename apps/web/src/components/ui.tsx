@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, useState } from "react";
+import type { Help } from "../lib/help";
 
 type Variant = "primary" | "secondary" | "choice";
 
@@ -29,9 +30,10 @@ export function Button({
 export type Step = { n: number; total: number; label: string };
 
 /** 한 화면 틀: 폭 360px에서도 가로 스크롤 없게. 화면마다 따로 꾸미지 않고 여기서 모양을 맞춘다 */
-export function Screen({ title, children, footer, step, white }: { title?: string; children: ReactNode; footer?: ReactNode; step?: Step; white?: boolean }) {
+export function Screen({ title, children, footer, step, white, help }: { title?: string; children: ReactNode; footer?: ReactNode; step?: Step; white?: boolean; help?: Help }) {
   return (
-    <main className={`mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6 ${white ? "bg-white" : "bg-slate-50"}`}>
+    <main className={`relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6 ${white ? "bg-white" : "bg-slate-50"}`}>
+      {help && <div className="absolute right-3 top-3 z-10"><HelpButton help={help} /></div>}
       {step && (
         <div className="mb-4" aria-label={`${step.total}단계 중 ${step.n}단계`}>
           <p className="mb-2 flex justify-between text-sm font-semibold text-muted">
@@ -42,7 +44,7 @@ export function Screen({ title, children, footer, step, white }: { title?: strin
           </div>
         </div>
       )}
-      {title && <h1 className="mb-5 text-2xl font-bold leading-snug">{title}</h1>}
+      {title && <h1 className={`mb-5 text-2xl font-bold leading-snug ${help ? "pr-12" : ""}`}>{title}</h1>}
       <div className="flex flex-1 flex-col gap-4">{children}</div>
       {footer && <div className="mt-6 flex flex-col gap-3">{footer}</div>}
     </main>
@@ -62,5 +64,31 @@ export function Notice({ kind, children }: { kind: "error" | "info"; children: R
       {kind === "error" ? "⚠️ " : "ℹ️ "}
       {children}
     </p>
+  );
+}
+
+/** (?) 사용 설명서: 누르면 그 화면 설명이 아래에서 올라온다 */
+export function HelpButton({ help }: { help: Help }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-label={`${help.title} 사용 설명서`}
+        className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-xl font-bold text-[#0e6582] shadow-sm">?</button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-label={`${help.title} 사용 설명서`} onClick={(e) => e.stopPropagation()}
+            className="max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl">
+            <p className="text-sm font-semibold text-[#0e6582]">사용 설명서</p>
+            <h2 className="mb-3 text-2xl font-bold">{help.title}</h2>
+            <ul className="flex flex-col gap-3">
+              {help.items.map((t) => (
+                <li key={t} className="flex gap-2 text-lg leading-relaxed"><span aria-hidden="true" className="text-[#0e6582]">●</span><span>{t}</span></li>
+              ))}
+            </ul>
+            <Button className="mt-5" onClick={() => setOpen(false)}>알겠어요</Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

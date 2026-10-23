@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Notice, Screen } from "../components/ui";
 import { AGE_GROUPS, GENDERS } from "../lib/labels";
+import { HELP } from "../lib/help";
 
 /** S3 나이·성별. [다음]을 누르면 가입(서버에 사용자 생성) 후 목소리 추천으로 */
 export function AgeGenderPage({ onBack, onNext }: {
@@ -25,6 +26,7 @@ export function AgeGenderPage({ onBack, onNext }: {
   return (
     <Screen
       step={{ n: 2, total: 3, label: "나이·성별" }}
+      help={HELP.ageGender}
       title="나이대와 성별을 골라 주세요"
       footer={
         <>

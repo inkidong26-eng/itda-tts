@@ -8,13 +8,15 @@ import { EdgeGlow, HighlightText } from "../components/Feedback";
 import { useNowPlaying, useVibration } from "../feedback/hooks";
 import type { Turn } from "../emotion/context";
 import { emotionInfo, type EmotionResult } from "../emotion/types";
-import { Notice } from "../components/ui";
+import { HelpButton, Notice } from "../components/ui";
+import { HELP } from "../lib/help";
 import { createOrdered } from "../lib/ordered";
 import { speechText } from "../lib/speechText";
 import { useCaptions } from "../stt/useCaptions";
 import { history, type Message } from "../storage/history";
 import type { Session } from "../storage/local";
-import { FONT_STEPS, type ViewSettings } from "../storage/settings";
+import { FONT_STEPS, type FontStep, type ViewSettings } from "../storage/settings";
+import { useKeepScreenOn } from "../lib/wakeLock";
 
 type Props = {
   session: Session;
@@ -35,6 +37,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
   const inOrder = useMemo(() => createOrdered(), []);
   const nowPlaying = useNowPlaying();
   useVibration(view.vibrate);
+  useKeepScreenOn(); // 대화 중 화면이 꺼지지 않게
 
   useEffect(() => {
     let alive = true;
@@ -145,7 +148,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
       <section aria-label="내 쪽" className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-3 pt-2">
         <div className="flex gap-2">
           <button type="button" onClick={onHome} className="min-h-[56px] rounded-xl border-2 border-navy px-3 font-bold text-navy">← 홈</button>
-          <button type="button" onClick={() => onView({ ...view, font: ((view.font + 1) % 3) as 0 | 1 | 2 })}
+          <button type="button" onClick={() => onView({ ...view, font: ((view.font + 1) % FONT_STEPS.length) as FontStep })}
             className="min-h-[56px] flex-1 rounded-xl border-2 border-gray-400 px-2 font-semibold">가 글자: {font.label}</button>
           {!speaker && (
             <button type="button" onClick={() => onView({ ...view, showTop: !view.showTop })}
@@ -153,10 +156,9 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
               {view.showTop ? "위쪽 숨기기" : "위쪽 보이기"}
             </button>
           )}
+          <HelpButton help={speaker ? HELP.speaker : HELP.face} />
         </div>
-        <p className="text-base text-muted">
-          {speaker ? "📱 스피커 방식: 볼륨 최대 · 상대 말 자막은 나오지 않아요" : "🔊 폰 소리를 켜고 음량을 크게 해 주세요"}
-        </p>
+        {speaker && <p className="text-base text-muted">📱 스피커 방식: 볼륨 최대 · 상대 말 자막은 나오지 않아요</p>}
         {problem === "offline" && <Notice kind="error">인터넷 연결을 확인해 주세요. 지금은 기본 목소리로 말해요</Notice>}
         {problem === "empty" && <Notice kind="error">읽을 글자가 없어요. 글자를 함께 적어 주세요</Notice>}
         {problem === "busy" && <Notice kind="error">너무 빨리 보내고 있어요. 지금은 기본 목소리로 말해요</Notice>}

@@ -6,15 +6,18 @@ import { ApiError, getCall } from "../api/client";
 import { player, unlockAudio } from "../audio/player";
 import { CallConnection, type CallMessage, type ConnState, wsUrl } from "../call/connection";
 import { HighlightText } from "../components/Feedback";
-import { Button, Notice, Screen } from "../components/ui";
+import { Button, HelpButton, Notice, Screen } from "../components/ui";
+import { HELP } from "../lib/help";
 import { emotionInfo, type EmotionCode } from "../emotion/types";
 import { Recognizer, sttSupported } from "../stt/recognizer";
+import { useKeepScreenOn } from "../lib/wakeLock";
 
 type Heard = { msgId: string; text: string; emotion?: EmotionCode };
 
 export function ReceivePage({ callId }: { callId: string }) {
   const [phase, setPhase] = useState<"loading" | "missing" | "busy" | "intro" | "talking" | "ended">("loading");
   const [deafName, setDeafName] = useState("");
+  useKeepScreenOn(phase === "intro" || phase === "talking"); // 통화 중 화면이 꺼지지 않게
   const [conn, setConn] = useState<ConnState>("connecting");
   const [deafOnline, setDeafOnline] = useState(true);
   const [heard, setHeard] = useState<Heard[]>([]);
@@ -115,7 +118,10 @@ export function ReceivePage({ callId }: { callId: string }) {
     ];
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 bg-slate-50 px-4 py-4">
-        <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-32" />
+        <div className="flex items-center justify-between">
+          <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-32" />
+          <HelpButton help={HELP.receive} />
+        </div>
 
         <section className="flex flex-col gap-2 rounded-3xl bg-white px-5 py-6 text-center shadow-sm">
           <h1 className="text-2xl font-bold leading-snug">{deafName}님이 대화를 요청했어요</h1>
@@ -150,6 +156,7 @@ export function ReceivePage({ callId }: { callId: string }) {
     <main className="mx-auto flex h-dvh w-full max-w-md flex-col gap-3 px-4 pb-3 pt-2">
       <div className="flex items-center gap-2">
         <p className="flex-1 text-lg font-bold">📞 {deafName}님과 통화 중</p>
+        <HelpButton help={HELP.receive} />
         <button type="button" onClick={() => { socket.current?.close(); setPhase("ended"); }}
           className="min-h-[56px] rounded-xl bg-red-700 px-4 font-bold text-white">끊기</button>
       </div>

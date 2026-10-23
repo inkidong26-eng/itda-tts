@@ -104,11 +104,24 @@ describe("화면 설정", () => {
       getItem: (k: string) => data.get(k) ?? null,
       setItem: (k: string, v: string) => void data.set(k, v),
     });
-    expect(loadView()).toEqual({ font: 0, showTop: true, vibrate: true, glow: false });
-    saveView({ font: 2, showTop: false, vibrate: false, glow: true });
-    expect(loadView()).toEqual({ font: 2, showTop: false, vibrate: false, glow: true });
-    data.set("itda.view", '{"font":9,"showTop":"x"}');
-    expect(loadView()).toEqual({ font: 0, showTop: true, vibrate: true, glow: false });
+    const base = { font: 1, family: "pretendard", theme: "basic", showTop: true, vibrate: true, glow: false };
+    expect(loadView()).toEqual(base);
+    const mine = { font: 4, family: "jua", theme: "lowvision", showTop: false, vibrate: false, glow: true } as const;
+    saveView(mine);
+    expect(loadView()).toEqual(mine);
+    data.set("itda.view", '{"font":9,"family":"없음","theme":"없음","showTop":"x","v":2}');
+    expect(loadView()).toEqual(base);
+  });
+
+  it("예전 3단계 글자 크기를 새 5단계로 옮긴다", () => {
+    const data = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+    });
+    data.set("itda.view", '{"font":0}'); expect(loadView().font).toBe(1); // 보통 → 보통
+    data.set("itda.view", '{"font":1}'); expect(loadView().font).toBe(2); // 크게 → 크게
+    data.set("itda.view", '{"font":2}'); expect(loadView().font).toBe(4); // 아주 크게 → 아주 크게
   });
 });
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ApiError, signup } from "./api/client";
+import { ApiError, deleteMe, signup } from "./api/client";
+import { AboutPage } from "./pages/AboutPage";
 import { AgeGenderPage } from "./pages/AgeGenderPage";
 import { CallPage } from "./pages/CallPage";
 import { FaceToFacePage } from "./pages/FaceToFacePage";
@@ -10,7 +11,8 @@ import { SpeakerGuidePage } from "./pages/SpeakerGuidePage";
 import { StartPage } from "./pages/StartPage";
 import { VoicePage } from "./pages/VoicePage";
 import { type Session, clearSession, loadSession, saveSession } from "./storage/local";
-import { FONT_STEPS, type ViewSettings, loadView, saveView } from "./storage/settings";
+import { applyAppearance } from "./storage/appearance";
+import { type ViewSettings, loadView, saveView } from "./storage/settings";
 
 type View =
   | { name: "start" }
@@ -23,6 +25,7 @@ type View =
   | { name: "speakerGuide" }
   | { name: "speaker" }
   | { name: "settings" }
+  | { name: "about" }
   | { name: "soon"; what: string };
 
 function firstView(session: Session | null): View {
@@ -37,10 +40,8 @@ export default function App() {
   const [draftName, setDraftName] = useState("");
   const [viewSettings, setViewSettings] = useState<ViewSettings>(loadView);
 
-  // 글자 크기는 앱 전체에 적용 (기본 18px 기준)
-  useEffect(() => {
-    document.documentElement.style.fontSize = `${18 * FONT_STEPS[viewSettings.font].scale}px`;
-  }, [viewSettings.font]);
+  // 글자 크기·글씨체·글자색은 앱 전체에 적용
+  useEffect(() => applyAppearance(viewSettings), [viewSettings]);
 
   const changeView = (v: ViewSettings) => {
     saveView(v);
@@ -114,7 +115,11 @@ export default function App() {
           onHome={() => setView({ name: "home" })} onAuthLost={restart} />
       );
     case "settings":
-      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} />;
+      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })}
+        onAbout={() => setView({ name: "about" })}
+        onRestart={() => { if (session) void deleteMe(session.token).catch(() => undefined); restart(); }} />;
+    case "about":
+      return <AboutPage onBack={() => setView({ name: "settings" })} />;
     case "soon":
       return <SoonPage what={view.what} onHome={() => setView({ name: "home" })} />;
   }

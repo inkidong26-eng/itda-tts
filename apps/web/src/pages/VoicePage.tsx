@@ -5,6 +5,7 @@ import { type PlayState, VoiceCard } from "../components/VoiceCard";
 import { Button, Notice, Screen } from "../components/ui";
 import { PATTERNS, vibrate } from "../feedback/vibrate";
 import type { Session } from "../storage/local";
+import { HELP } from "../lib/help";
 
 /** S4 목소리 고르기: 추천 3개 + [다른 목소리 보기] */
 export function VoicePage({ session, onChosen, onAuthLost, onRestart }: {
@@ -85,6 +86,7 @@ export function VoicePage({ session, onChosen, onAuthLost, onRestart }: {
   return (
     <Screen
       step={{ n: 3, total: 3, label: "목소리" }}
+      help={HELP.voice}
       title="내 목소리를 골라 주세요"
       footer={
         <>
@@ -95,7 +97,7 @@ export function VoicePage({ session, onChosen, onAuthLost, onRestart }: {
         </>
       }
     >
-      <p className="text-muted">[들어보기]를 누르면 소리가 나는 동안 막대가 움직여요. 안드로이드 폰은 시작과 끝에 떨려요. 옆 사람에게 들어 봐 달라고 해도 좋아요.</p>
+      <p className="text-muted">설명을 읽고 고르세요. 옆 사람에게 들어 봐 달라고 해도 좋아요.</p>
       {error && (
         <>
           <Notice kind="error">{error}</Notice>

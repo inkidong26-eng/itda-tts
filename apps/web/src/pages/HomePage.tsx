@@ -2,20 +2,17 @@ import { speak } from "../api/client";
 import { player, unlockAudio } from "../audio/player";
 import { Button, Screen } from "../components/ui";
 import { speechText } from "../lib/speechText";
+import { PHRASE_SETS } from "../lib/phrases";
+import { useState } from "react";
 import type { Session } from "../storage/local";
-
-// 홈에서 바로 말하는 빠른 말 4개 (기록에는 남기지 않는다)
-const QUICK = [
-  { text: "저는 글로 대화해요. 잠시 화면을 봐 주세요", note: "먼저 말 걸기" },
-  { text: "안녕하세요", note: "인사" },
-  { text: "감사합니다", note: "인사·감사" },
-  { text: "잠시만 기다려 주세요", note: "양해 구하기" },
-];
+import { HELP } from "../lib/help";
 
 let seq = 0;
 
 /** S5 홈 */
 export function HomePage({ session, onSoon }: { session: Session; onSoon: (what: string) => void }) {
+  const [setId, setSetId] = useState(PHRASE_SETS[0].id);
+  const phrases = (PHRASE_SETS.find((p) => p.id === setId) ?? PHRASE_SETS[0]).phrases;
   // 약속: 어떤 오류에서도 소리로 나간다 (서버가 안 되면 폰 기본 음성)
   const say = (text: string) => {
     unlockAudio();
@@ -28,14 +25,12 @@ export function HomePage({ session, onSoon }: { session: Session; onSoon: (what:
   };
 
   return (
-    <Screen>
-      <header className="-mt-2 flex items-center gap-2">
+    <Screen help={HELP.home}>
+      <header className="-mt-2 flex items-center gap-2 pr-12">
         <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-24" />
         <span className="ml-auto truncate rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-brand-dark">
           ● {session.name}님 · {session.voiceName}
         </span>
-        <button type="button" onClick={() => onSoon("설정")} aria-label="설정"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl active:bg-slate-100">⚙️</button>
       </header>
 
       <section className="rounded-3xl bg-white p-4 shadow-sm">
@@ -62,16 +57,26 @@ export function HomePage({ session, onSoon }: { session: Session; onSoon: (what:
       </button>
 
       <section className="rounded-3xl bg-white p-4 shadow-sm">
-        <p className="text-lg font-bold">⚡ 자주 쓰는 빠른 말 <span className="text-sm font-normal text-muted">누르면 바로 말해요</span></p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {QUICK.map((q, i) => (
-            <button key={q.text} type="button" onClick={() => say(q.text)}
-              className={`relative min-h-[64px] rounded-2xl p-3 pr-8 text-left active:bg-slate-200 ${i === 0 ? "col-span-2 bg-teal-50" : "bg-slate-50"}`}>
-              <span aria-hidden="true" className="absolute right-2 top-2 text-base">🔊</span>
-              <span className="block break-keep font-bold leading-snug">{q.text}</span>
-              <span className="block text-sm text-muted">{q.note}</span>
+        <p className="text-lg font-bold">⚡ 빠른 말 <span className="text-sm font-normal text-muted">누르면 바로 말해요</span></p>
+        <div className="mt-2 flex flex-wrap gap-1" role="tablist" aria-label="상황 고르기">
+          {PHRASE_SETS.map((p) => (
+            <button key={p.id} type="button" role="tab" aria-selected={p.id === setId} onClick={() => setSetId(p.id)}
+              className={`min-h-[44px] shrink-0 rounded-full border-2 px-3 text-base font-semibold ${p.id === setId ? "border-[#0e6582] bg-[#0e6582] text-white" : "border-slate-200 bg-white"}`}>
+              {p.icon} {p.label}
             </button>
           ))}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {phrases.map((text, i) => {
+            const wide = i === 0 && text.length > 14;
+            return (
+              <button key={text} type="button" onClick={() => say(text)}
+                className={`relative min-h-[60px] rounded-2xl p-3 pr-8 text-left active:bg-slate-200 ${wide ? "col-span-2 bg-teal-50" : "bg-slate-50"}`}>
+                <span aria-hidden="true" className="absolute right-2 top-2 text-base">🔊</span>
+                <span className="block break-keep font-bold leading-snug">{text}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 

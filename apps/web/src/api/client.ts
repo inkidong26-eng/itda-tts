@@ -74,6 +74,11 @@ export function listVoices(token: string, ageGroup: string) {
   return request<Voice[]>("GET", `/voices?ageGroup=${ageGroup}`, token);
 }
 
+/** 처음부터 다시 하기: 서버의 이 사용자 정보(이름 등)를 지운다 */
+export function deleteMe(token: string) {
+  return request<{ ok: boolean }>("DELETE", "/me", token);
+}
+
 export function chooseVoice(token: string, voiceId: string) {
   return request<{ ok: boolean }>("PATCH", "/me", token, { voiceId });
 }

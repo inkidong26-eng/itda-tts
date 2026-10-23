@@ -24,7 +24,53 @@ html {
 body {
   background: #ffffff;
   color: var(--color-ink);
+  /* 설정에서 고른 글씨체 (없거나 아직 못 받았으면 기본 글꼴) */
+  font-family: var(--app-font, "Pretendard Variable"), Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   /* 한글은 단어 중간에서 줄이 바뀌지 않게 */
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
+
+/* 어두운 바탕(고대비·저시력): 흰 카드·옅은 색 바탕을 검정 계열로, 테두리는 밝게 (11 문서 2절) */
+:root[data-dark] body,
+:root[data-dark] .bg-white,
+:root[data-dark] .bg-slate-50,
+:root[data-dark] .bg-gray-100,
+:root[data-dark] .bg-blue-50,
+:root[data-dark] .bg-sky-50,
+:root[data-dark] .bg-teal-50,
+:root[data-dark] .bg-orange-50,
+:root[data-dark] .bg-lime-50,
+:root[data-dark] .bg-red-50,
+:root[data-dark] .bg-slate-200,
+:root[data-dark] .bg-sky-100,
+:root[data-dark] .bg-slate-50\/95 {
+  background-color: #000000;
+}
+:root[data-dark] .bg-white,
+:root[data-dark] .bg-slate-50,
+:root[data-dark] .bg-gray-100,
+:root[data-dark] .bg-sky-50,
+:root[data-dark] .bg-teal-50,
+:root[data-dark] .bg-orange-50,
+:root[data-dark] .bg-lime-50,
+:root[data-dark] .bg-blue-50 {
+  outline: 2px solid #6b7280;
+  outline-offset: -2px;
+}
+:root[data-dark] main { background-color: #000000; }
+:root[data-dark] .text-ink,
+:root[data-dark] .text-navy,
+:root[data-dark] .text-brand-dark,
+:root[data-dark] .text-orange-800,
+:root[data-dark] .text-orange-900,
+:root[data-dark] .text-red-800 { color: var(--color-ink); }
+:root[data-dark] .text-muted,
+:root[data-dark] .text-gray-400 { color: var(--color-muted); }
+:root[data-dark] input,
+:root[data-dark] textarea { background-color: #111111; color: var(--color-ink); border-color: #9ca3af; }
+:root[data-dark] [class*="border-"] { border-color: #9ca3af; }
+
+/* 굵은 글씨가 없는 글꼴(주아·고운돋움)은 억지로 굵게 만들면 뭉개지므로 끈다 */
+:root[data-font="jua"] body,
+:root[data-font="dodum"] body { font-synthesis: none; }

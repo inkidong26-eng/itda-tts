@@ -3,12 +3,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDeafCall } from "../call/useDeafCall";
 import { Composer, MessageList } from "../components/Conversation";
 import { EdgeGlow } from "../components/Feedback";
-import { Button, Card, Notice, Screen } from "../components/ui";
+import { Button, Card, HelpButton, Notice, Screen } from "../components/ui";
+import { HELP } from "../lib/help";
 import type { Turn } from "../emotion/context";
 import { emotionInfo } from "../emotion/types";
 import { useVibration } from "../feedback/hooks";
 import type { Session } from "../storage/local";
 import type { ViewSettings } from "../storage/settings";
+import { useKeepScreenOn } from "../lib/wakeLock";
 
 function useClock(since: number | null): string {
   const [now, setNow] = useState(Date.now());
@@ -32,6 +34,7 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
   const clock = useClock(call.connectedAt);
   const [copied, setCopied] = useState(false);
   useVibration(view.vibrate, call.bus); // 상대 폰의 실제 재생 신호로 진동
+  useKeepScreenOn(call.phase === "waiting" || call.phase === "talking"); // 통화 중 화면이 꺼지지 않게
 
   const colorFor = useCallback((id: string) => {
     const m = call.messages.find((x) => x.id === id);
@@ -60,7 +63,7 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
 
   if (call.phase === "idle" || call.phase === "creating") {
     return (
-      <Screen title="📞 전화로 대화" footer={<Button variant="secondary" onClick={onHome}>← 홈으로</Button>}>
+      <Screen title="📞 전화로 대화" help={HELP.call} footer={<Button variant="secondary" onClick={onHome}>← 홈으로</Button>}>
         {call.notice && <Notice kind="error">{call.notice}</Notice>}
         <Card className="flex flex-col gap-3 border-t-4 border-[#0e6582]">
           <span className="w-fit rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-800">👍 추천</span>
@@ -89,7 +92,7 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
 
   if (call.phase === "waiting") {
     return (
-      <Screen title="상대방을 기다리는 중…" footer={<Button variant="secondary" onClick={call.hangup}>취소</Button>}>
+      <Screen title="상대방을 기다리는 중…" help={HELP.call} footer={<Button variant="secondary" onClick={call.hangup}>취소</Button>}>
         <EdgeGlow enabled={view.glow} colorFor={colorFor} bus={call.bus} flash={call.flash} />
         <p className="text-muted">상대에게 아래 QR을 보여 주거나 링크를 보내 주세요.</p>
         {call.info && (
@@ -112,6 +115,7 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
         <span className={`rounded-full px-3 py-1 text-base font-semibold ${call.hearingOnline ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
           {call.hearingOnline ? "🟢 연결됨" : "🔴 끊김"}
         </span>
+        <HelpButton help={HELP.callTalk} />
         <button type="button" onClick={call.hangup} className="min-h-[56px] rounded-xl bg-red-700 px-4 font-bold text-white">끊기</button>
       </div>
       {call.conn === "reconnecting" && <Notice kind="error">인터넷이 끊겼어요. 다시 연결하는 중… (보낸 글은 이어서 보내요)</Notice>}
