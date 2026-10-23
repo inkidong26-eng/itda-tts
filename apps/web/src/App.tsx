@@ -84,6 +84,7 @@ export default function App() {
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
         <VoicePage session={session} onAuthLost={restart} onRestart={restart}
+          onBack={session.voiceId ? () => setView({ name: "home" }) : undefined}
           onChosen={(v) => { keep({ ...session, voiceId: v.id, voiceName: v.name }); setView({ name: "home" }); }} />
       );
     case "home":
@@ -114,7 +115,7 @@ export default function App() {
           onHome={() => setView({ name: "home" })} onAuthLost={restart} />
       );
     case "settings":
-      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} />;
+      return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })} onVoice={() => setView({ name: "voice" })} />;
     case "soon":
       return <SoonPage what={view.what} onHome={() => setView({ name: "home" })} />;
   }

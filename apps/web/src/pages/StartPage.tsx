@@ -30,7 +30,7 @@ export function StartPage({ onStart }: { onStart: () => void }) {
     <Screen
       footer={
         <>
-          <Button onClick={start} className="!min-h-[64px] !bg-[#0e6582] !text-xl shadow-md">대화 시작하기 →</Button>
+          <Button onClick={start} className="!min-h-[64px] !text-xl">대화 시작하기 →</Button>
           <p className="text-center text-base text-muted">
             {install ? (
               <button type="button" className="min-h-[56px] font-semibold text-navy underline" onClick={() => void install.prompt()}>

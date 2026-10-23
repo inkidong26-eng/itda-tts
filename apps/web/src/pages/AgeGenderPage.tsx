@@ -24,6 +24,7 @@ export function AgeGenderPage({ onBack, onNext }: {
 
   return (
     <Screen
+      step={{ n: 2, total: 3, label: "나이·성별" }}
       title="나이대와 성별을 골라 주세요"
       footer={
         <>

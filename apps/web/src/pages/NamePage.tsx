@@ -23,6 +23,7 @@ export function NamePage({ initial, onBack, onNext }: {
 
   return (
     <Screen
+      step={{ n: 1, total: 3, label: "이름" }}
       title="이름을 적어 주세요"
       footer={
         <>
@@ -34,7 +35,7 @@ export function NamePage({ initial, onBack, onNext }: {
       <label className="flex flex-col gap-2">
         <span className="font-semibold">이름 (한글·영문 2–20자)</span>
         <input
-          className="min-h-[56px] rounded-xl border-2 border-gray-400 px-4 text-xl focus:border-navy focus:outline-none"
+          className="min-h-[56px] rounded-2xl border-2 border-slate-200 bg-white px-4 text-xl shadow-sm focus:border-[#0e6582] focus:outline-none"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoComplete="name"
@@ -44,7 +45,7 @@ export function NamePage({ initial, onBack, onNext }: {
       </label>
       {tried && error && <Notice kind="error">{error}</Notice>}
 
-      <label className="flex min-h-[56px] items-start gap-3 rounded-xl border-2 border-gray-300 p-4">
+      <label className="flex min-h-[56px] items-start gap-3 rounded-2xl bg-white p-4 shadow-sm">
         <input type="checkbox" className="mt-1 h-7 w-7 shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span>{CONSENT_TEXT} <b>(필수)</b></span>
       </label>
