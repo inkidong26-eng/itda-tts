@@ -33,7 +33,7 @@ export function HighlightText({ id, text, color, bus }: { id: string | undefined
         return (
           <Fragment key={i}>
             <span className={`inline-block rounded-md px-0.5 transition-transform ${current ? "scale-110" : ""}`}
-              style={{ background: current ? `${color}55` : undefined, color: done || current ? "#111827" : "#9ca3af" }}>
+              style={{ background: current ? `${color}55` : undefined, color: done || current ? "var(--color-ink)" : "#9ca3af" }}>
               {w.word}
             </span>
             {i < spans.length - 1 ? " " : ""}

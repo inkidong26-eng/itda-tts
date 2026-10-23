@@ -75,7 +75,8 @@ export function HelpButton({ help }: { help: Help }) {
       <button type="button" onClick={() => setOpen(true)} aria-label={`${help.title} 사용 설명서`}
         className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-xl font-bold text-[#0e6582] shadow-sm">?</button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setOpen(false)}
+          onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
           <div role="dialog" aria-modal="true" aria-label={`${help.title} 사용 설명서`} onClick={(e) => e.stopPropagation()}
             className="max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl">
             <p className="text-sm font-semibold text-[#0e6582]">사용 설명서</p>
@@ -85,7 +86,7 @@ export function HelpButton({ help }: { help: Help }) {
                 <li key={t} className="flex gap-2 text-lg leading-relaxed"><span aria-hidden="true" className="text-[#0e6582]">●</span><span>{t}</span></li>
               ))}
             </ul>
-            <Button className="mt-5" onClick={() => setOpen(false)}>알겠어요</Button>
+            <Button className="mt-5" autoFocus onClick={() => setOpen(false)}>알겠어요</Button>
           </div>
         </div>
       )}

@@ -69,7 +69,15 @@ body {
 :root[data-dark] .text-gray-400 { color: var(--color-muted); }
 :root[data-dark] input,
 :root[data-dark] textarea { background-color: #111111; color: var(--color-ink); border-color: #9ca3af; }
-:root[data-dark] [class*="border-"] { border-color: #9ca3af; }
+:root[data-dark] .border-slate-200,
+:root[data-dark] .border-slate-300,
+:root[data-dark] .border-gray-200,
+:root[data-dark] .border-gray-300,
+:root[data-dark] .border-gray-400 { border-color: #9ca3af; }
+/* 고른 것은 색 차이 대신 굵은 밝은 테두리로 */
+:root[data-dark] [aria-pressed="true"],
+:root[data-dark] [aria-selected="true"] { outline: 3px solid var(--color-ink); outline-offset: 1px; }
+:root[data-dark] .text-\[\#0e6582\] { color: var(--color-ink); }
 
 /* 굵은 글씨가 없는 글꼴(주아·고운돋움)은 억지로 굵게 만들면 뭉개지므로 끈다 */
 :root[data-font="jua"] body,

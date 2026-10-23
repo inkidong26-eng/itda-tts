@@ -14,7 +14,9 @@ export function useKeepScreenOn(active = true): void {
     const take = () => {
       if (document.visibilityState !== "visible") return;
       api.request("screen").then((l) => {
-        if (alive) lock = l; else void l.release().catch(() => undefined);
+        if (!alive) { void l.release().catch(() => undefined); return; }
+        void lock?.release().catch(() => undefined); // 빨리 숨겼다 돌아오면 두 번 잡힐 수 있어 이전 것을 푼다
+        lock = l;
       }).catch(() => undefined); // 배터리 절약 모드 등으로 거절돼도 대화는 그대로
     };
     take();

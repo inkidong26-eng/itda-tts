@@ -97,7 +97,7 @@ export function EmotionChips({ auto, manual, onChange, trailing }: {
               style={{
                 borderColor: chosen || autoPick ? e.color : "#d1d5db",
                 borderStyle: autoPick ? "dashed" : "solid",
-                background: chosen ? `${e.color}33` : autoPick ? `${e.color}14` : "#fff",
+                background: chosen ? `${e.color}33` : autoPick ? `${e.color}14` : "transparent",
                 WebkitTouchCallout: "none", // 아이폰 길게 누르기 메뉴 막기
               }}>
               <span aria-hidden="true" className="text-xl leading-none">{e.icon}</span>
