@@ -148,3 +148,27 @@ print(json.dumps({k: d["summary"].get(k) for k in ("gpu", "speed", "throughput",
 ```
 
 4. **⚠️ 다 쓰면 업체 화면에서 서버를 꼭 끄고(Stop) 지우기(Terminate). 켜 두면 계속 요금이 나간다.**
+
+## E. 목소리 14개 만들기 (T05, 임대 GPU 약 20–40분)
+10/24 결정: 방식 A · **복제 1.7B** (0.6B는 청취에서 탈락). 기준 음성 후보의 43%에 숨소리가 있어 **후보 3개 중 사람이 고른다.**
+
+1. RunPod 에서 24GB 이상 GPU(4090·L40·5090 등) 1대, **PyTorch 템플릿**으로 켜고 Jupyter Lab 을 연다.
+2. 새 노트북 첫 칸:
+```python
+!rm -rf itda-tts && git clone -q https://github.com/inkidong26-eng/itda-tts.git
+!pip install -q -r itda-tts/services/tts/requirements-gpu.txt
+!python itda-tts/services/tts/scripts/build_voices.py --out /workspace/voices
+```
+   - 끊겨도 같은 칸을 다시 실행하면 **이미 만든 목소리는 건너뛰고** 이어서 만든다.
+3. 끝나면 왼쪽 파일 목록 `voices/review.html` 을 **오른쪽 클릭 → Download**. (소리가 모두 들어 있어 서버를 지워도 들을 수 있음)
+4. 최종 파일도 받아 둔다 (후보 제외, 작음):
+```python
+import shutil, pathlib
+src = pathlib.Path("/workspace/voices"); dst = pathlib.Path("/workspace/voices_final")
+shutil.rmtree(dst, ignore_errors=True)
+shutil.copytree(src, dst, ignore=shutil.ignore_patterns("cand", "review.html"))
+shutil.make_archive("/workspace/voices_final", "zip", dst)
+```
+   → `voices_final.zip` 을 Download.
+5. **⚠️ 서버 끄기: ⋮ → Stop Pod → 다시 ⋮ → Terminate Pod** (Stop만 하면 디스크 요금이 계속 나감)
+6. review.html 에서 고르고 [결과 복사] → 대화창에 붙여 넣기. 바꿀 것이 있으면 다음에 GPU를 켤 때 `--apply` 로 적용한다.
