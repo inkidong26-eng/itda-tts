@@ -17,6 +17,14 @@ ufw allow 443/tcp
 ufw allow 443/udp
 ufw --force enable
 
+# 인터넷으로는 열쇠(SSH 키)로만 들어온다. 비밀번호 로그인 끔 (비상시 Vultr 웹 콘솔은 그대로)
+cat > /etc/ssh/sshd_config.d/00-itda-hardening.conf <<'SSHD'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+SSHD
+sshd -t && systemctl reload ssh
+
 # 웹앱 빌드 때 메모리가 모자라지 않게 2GB 보조 메모리
 if [ ! -f /swapfile ]; then
   fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
