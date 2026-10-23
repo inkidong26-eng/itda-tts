@@ -2,11 +2,13 @@
 
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
+from app import voice_rule
 from app.db import User
 from app.deps import client_ip, current_user
 from app.tokens import sign
@@ -56,13 +58,34 @@ async def guest_signup(body: GuestIn, request: Request) -> dict:
     return {"userId": user.id, "token": token}
 
 
+def _rule(user: User) -> voice_rule.VoiceRule:
+    return voice_rule.check(user.created_at, user.voice_id, user.voice_changed_at, datetime.now(timezone.utc))
+
+
+@router.get("/me")
+async def get_me(user: User = Depends(current_user)) -> dict:
+    rule = _rule(user)
+    return {
+        "voiceId": user.voice_id,
+        "canChangeVoice": rule.can_change,
+        "voiceFreeUntil": rule.free_until.isoformat() if rule.free_until else None,
+        "nextVoiceChangeAt": rule.next_at.isoformat() if rule.next_at else None,
+    }
+
+
 @router.patch("/me")
 async def update_me(body: MeIn, request: Request, user: User = Depends(current_user)) -> dict:
     fields = {}
-    if body.voiceId is not None:
+    if body.voiceId is not None and body.voiceId != user.voice_id:
         if await request.app.state.db.get_approved_voice(body.voiceId) is None:
             raise HTTPException(status_code=400, detail="없는 목소리예요")
+        rule = _rule(user)
+        if not rule.can_change:
+            when = voice_rule.korean_date(rule.next_at)
+            raise HTTPException(status_code=409, detail=f"이번 달에는 이미 목소리를 바꿨어요. {when}부터 바꿀 수 있어요")
         fields["voice_id"] = body.voiceId
+        if rule.counts:
+            fields["voice_changed_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if body.speed is not None:
         fields["speed"] = body.speed
     if fields:

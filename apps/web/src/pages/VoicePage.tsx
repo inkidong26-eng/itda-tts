@@ -8,11 +8,12 @@ import type { Session } from "../storage/local";
 import { HELP } from "../lib/help";
 
 /** S4 목소리 고르기: 추천 3개 + [다른 목소리 보기] */
-export function VoicePage({ session, onChosen, onAuthLost, onRestart }: {
+export function VoicePage({ session, onChosen, onAuthLost, onRestart, onBack }: {
   session: Session;
   onChosen: (voice: Voice) => void;
   onAuthLost: () => void;
   onRestart: () => void;
+  onBack?: () => void; // 목소리 바꾸기(설정에서 들어옴): 가입 단계 대신 설정으로 돌아가기
 }) {
   const [voices, setVoices] = useState<Voice[] | null>(null);
   const [more, setMore] = useState<Voice[] | null>(null);
@@ -85,15 +86,19 @@ export function VoicePage({ session, onChosen, onAuthLost, onRestart }: {
 
   return (
     <Screen
-      step={{ n: 3, total: 3, label: "목소리" }}
+      step={onBack ? undefined : { n: 3, total: 3, label: "목소리" }}
       help={HELP.voice}
-      title="내 목소리를 골라 주세요"
+      title={onBack ? "목소리 바꾸기" : "내 목소리를 골라 주세요"}
       footer={
         <>
           {more === null && voices && <Button variant="secondary" onClick={showMore}>다른 목소리 보기</Button>}
-          <button type="button" className="min-h-[56px] text-muted underline" onClick={onRestart}>
-            처음부터 다시 하기
-          </button>
+          {onBack ? (
+            <Button variant="secondary" onClick={onBack}>← 설정으로</Button>
+          ) : (
+            <button type="button" className="min-h-[56px] text-muted underline" onClick={onRestart}>
+              처음부터 다시 하기
+            </button>
+          )}
         </>
       }
     >

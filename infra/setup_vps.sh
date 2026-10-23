@@ -52,4 +52,7 @@ EOF
   chmod 600 "$ENV"
 fi
 mkdir -p "$DIR/services/api/data"
+
+# 가입 정보 DB 하루 1번 백업 (한국 새벽 4시 = 서버 UTC 19시, 7일 보관)
+echo "0 19 * * * root bash $DIR/infra/backup_db.sh" > /etc/cron.d/itda-backup
 echo "준비 끝. 다음: bash $DIR/infra/deploy.sh"

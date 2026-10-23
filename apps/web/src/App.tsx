@@ -18,7 +18,7 @@ type View =
   | { name: "start" }
   | { name: "name" }
   | { name: "ageGender" }
-  | { name: "voice" }
+  | { name: "voice"; changing?: boolean }
   | { name: "home" }
   | { name: "face" }
   | { name: "call" }
@@ -85,6 +85,7 @@ export default function App() {
       if (!session) return <StartPage onStart={() => setView({ name: "name" })} />;
       return (
         <VoicePage session={session} onAuthLost={restart} onRestart={restart}
+          onBack={view.changing ? () => setView({ name: "settings" }) : undefined}
           onChosen={(v) => { keep({ ...session, voiceId: v.id, voiceName: v.name }); setView({ name: "home" }); }} />
       );
     case "home":
@@ -116,6 +117,7 @@ export default function App() {
       );
     case "settings":
       return <SettingsPage view={viewSettings} onView={changeView} onHome={() => setView({ name: "home" })}
+        session={session} onVoice={() => setView({ name: "voice", changing: true })}
         onAbout={() => setView({ name: "about" })}
         onRestart={() => { if (session) void deleteMe(session.token).catch(() => undefined); restart(); }} />;
     case "about":

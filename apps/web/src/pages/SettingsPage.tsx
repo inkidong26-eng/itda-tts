@@ -1,12 +1,16 @@
 // S9 설정 (11 문서 3절): 글자 크기 5 · 글씨체 7 · 글자색 7 · 알림 · 대화 기록 · 잇다 이야기 · 계정 관리(깊은 곳)
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMe, type Me } from "../api/client";
 import { Button, Card, Notice, Screen } from "../components/ui";
 import { HELP } from "../lib/help";
 import { history } from "../storage/history";
+import type { Session } from "../storage/local";
 import { FONT_STEPS, FONTS, type FontStep, THEMES, type ViewSettings } from "../storage/settings";
 
-export function SettingsPage({ view, onView, onHome, onAbout, onRestart }: {
+export function SettingsPage({ view, onView, onHome, onAbout, onRestart, session, onVoice }: {
   view: ViewSettings;
+  session: Session | null;
+  onVoice: () => void; // 목소리 바꾸기 화면으로
   onView: (v: ViewSettings) => void;
   onHome: () => void;
   onAbout: () => void;
@@ -15,6 +19,16 @@ export function SettingsPage({ view, onView, onHome, onAbout, onRestart }: {
   const [confirm, setConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
   const [restartStep, setRestartStep] = useState<0 | 1 | 2>(0);
+  const [me, setMe] = useState<Me | null | "error">(null);
+  const [voiceAsk, setVoiceAsk] = useState(false);
+
+  // 목소리 바꾸기 규칙 상태는 서버가 정한다 (가입 후 24시간 자유, 그 뒤 한 달에 한 번)
+  useEffect(() => {
+    if (!session) return;
+    let alive = true;
+    getMe(session.token).then((m) => alive && setMe(m)).catch(() => alive && setMe("error"));
+    return () => { alive = false; };
+  }, [session]);
 
   const clear = async () => {
     await history.clear();
@@ -108,6 +122,8 @@ export function SettingsPage({ view, onView, onHome, onAbout, onRestart }: {
         {cleared && <Notice kind="info">✅ 대화 기록을 지웠어요</Notice>}
       </Card>
 
+      {session && <VoiceCard me={me} voiceName={session.voiceName} ask={voiceAsk} onAsk={setVoiceAsk} onGo={onVoice} />}
+
       <Button variant="secondary" onClick={onAbout}>🌉 잇다 이야기</Button>
 
       {/* 계정 관리: 일부러 접어 두어 잘 보이지 않게 (11 문서 3절) */}
@@ -134,5 +150,51 @@ export function SettingsPage({ view, onView, onHome, onAbout, onRestart }: {
         </div>
       </details>
     </Screen>
+  );
+}
+
+const day = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+};
+const dayTime = (iso: string) => {
+  const d = new Date(iso);
+  const h = d.getHours();
+  return `${day(iso)} ${h < 12 ? "오전" : "오후"} ${h % 12 === 0 ? 12 : h % 12}시`;
+};
+
+/** 내 목소리: 평생 가져가는 목소리라 바꾸기를 일부러 한 번 더 확인한다 (11 문서 4절) */
+function VoiceCard({ me, voiceName, ask, onAsk, onGo }: {
+  me: Me | null | "error";
+  voiceName?: string;
+  ask: boolean;
+  onAsk: (v: boolean) => void;
+  onGo: () => void;
+}) {
+  const free = me && me !== "error" && me.voiceFreeUntil && new Date(me.voiceFreeUntil) > new Date();
+  return (
+    <Card className="flex flex-col gap-2">
+      <h2 className="text-lg font-bold">🔊 내 목소리: {voiceName ?? "-"}</h2>
+      {me === null && <p className="text-base text-muted">확인하는 중…</p>}
+      {me === "error" && <p className="text-base text-muted">지금은 확인할 수 없어요. 인터넷 연결 후 다시 열어 주세요.</p>}
+      {me && me !== "error" && !me.canChangeVoice && me.nextVoiceChangeAt && (
+        <p className="text-base text-muted">이번 달에는 이미 바꿨어요. {day(me.nextVoiceChangeAt)}부터 바꿀 수 있어요.</p>
+      )}
+      {me && me !== "error" && me.canChangeVoice && !ask && (
+        <>
+          <p className="text-base text-muted">{free ? `가입 후 24시간, ${dayTime(me.voiceFreeUntil!)}까지는 자유롭게 바꿀 수 있어요.` : "목소리는 한 달에 한 번 바꿀 수 있어요."}</p>
+          <Button variant="secondary" onClick={() => onAsk(true)}>목소리 바꾸기</Button>
+        </>
+      )}
+      {me && me !== "error" && me.canChangeVoice && ask && (
+        <>
+          <Notice kind="info">
+            {free ? "지금은 자유롭게 바꿀 수 있어요." : "목소리는 상대가 나를 알아보는 소리예요. 바꾸면 이번 달에는 다시 바꿀 수 없어요."}
+          </Notice>
+          <Button onClick={onGo}>네, 고르러 갈게요</Button>
+          <Button variant="secondary" onClick={() => onAsk(false)}>아니요</Button>
+        </>
+      )}
+    </Card>
   );
 }

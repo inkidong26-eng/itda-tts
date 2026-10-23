@@ -33,6 +33,7 @@ export class ApiError extends Error {
 function messageFor(status: number): string {
   if (status === 429) return "잠시 후 다시 보내 주세요";
   if (status === 401) return "처음부터 다시 시작해 주세요";
+  if (status === 409) return "이번 달에는 이미 목소리를 바꿨어요";
   if (status === 0) return "인터넷 연결을 확인해 주세요";
   return "문제가 생겼어요. 다시 해 주세요";
 }
@@ -72,6 +73,13 @@ export function recommendVoices(token: string, ageGroup: string, gender: string)
 
 export function listVoices(token: string, ageGroup: string) {
   return request<Voice[]>("GET", `/voices?ageGroup=${ageGroup}`, token);
+}
+
+export type Me = { voiceId: string | null; canChangeVoice: boolean; voiceFreeUntil: string | null; nextVoiceChangeAt: string | null };
+
+/** 내 정보: 목소리 바꾸기 규칙 상태 (가입 후 24시간 자유, 그 뒤 한 달에 한 번) */
+export function getMe(token: string) {
+  return request<Me>("GET", "/me", token);
 }
 
 /** 처음부터 다시 하기: 서버의 이 사용자 정보(이름 등)를 지운다 */

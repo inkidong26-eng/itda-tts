@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from sqlalchemy import Float, Integer, String, Text, delete, select
+from sqlalchemy import Float, Integer, String, Text, delete, inspect, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -20,6 +20,13 @@ class Base(DeclarativeBase):
     pass
 
 
+def _add_missing_columns(conn) -> None:
+    """이미 있는 DB에 새 칸을 더한다 (create_all 은 표가 있으면 칸을 추가하지 않음). 빈 칸으로만 더하므로 안전."""
+    have = {c["name"] for c in inspect(conn).get_columns("users")}
+    if "voice_changed_at" not in have:
+        conn.execute(text("ALTER TABLE users ADD COLUMN voice_changed_at VARCHAR"))
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -28,6 +35,7 @@ class User(Base):
     age_group: Mapped[str | None] = mapped_column(String)
     gender: Mapped[str | None] = mapped_column(String)
     voice_id: Mapped[str | None] = mapped_column(String)
+    voice_changed_at: Mapped[str | None] = mapped_column(String)  # 목소리 규칙: 마지막으로 "세는" 변경 시각
     speed: Mapped[float] = mapped_column(Float, default=1.0)
     auth_provider: Mapped[str] = mapped_column(String, default="guest")
     consent_version: Mapped[str | None] = mapped_column(String)
@@ -87,6 +95,7 @@ class Database:
     async def init(self) -> None:
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(_add_missing_columns)
 
     async def close(self) -> None:
         await self.engine.dispose()
