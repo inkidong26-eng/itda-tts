@@ -71,13 +71,14 @@ export function SettingsPage({ view, onView, onHome, onAbout, onRestart }: {
             return (
               <button key={t.id} type="button" aria-pressed={on} onClick={() => onView({ ...view, theme: t.id })}
                 className={`flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border-2 ${on ? "border-[#0e6582] ring-2 ring-[#0e6582]" : "border-slate-200"}`}
-                style={{ background: t.dark ? "#000000" : "#ffffff" }}>
+                style={{ background: t.dark ? "#121212" : "#ffffff" }}>
                 <span aria-hidden="true" className="text-2xl font-bold leading-none" style={{ color: t.ink }}>가</span>
                 <span className="text-xs font-semibold" style={{ color: t.ink }}>{on ? "✓ " : ""}{t.label}</span>
               </button>
             );
           })}
         </div>
+        <p className="mt-2 text-sm text-muted">고대비·저시력은 눈이 불편한 분께 추천해요.</p>
       </Card>
 
       <Card>

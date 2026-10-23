@@ -31,34 +31,28 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* 어두운 바탕(고대비·저시력): 흰 카드·옅은 색 바탕을 검정 계열로, 테두리는 밝게 (11 문서 2절) */
+/* 어두운 바탕(고대비·저시력): 완전한 검정 대신 아주 짙은 회색, 카드는 한 단계 밝게 (11 문서 2절, 10/23 의견) */
 :root[data-dark] body,
-:root[data-dark] .bg-white,
+:root[data-dark] main,
 :root[data-dark] .bg-slate-50,
+:root[data-dark] .bg-slate-50\/95,
+:root[data-dark] .bg-slate-200 {
+  background-color: #121212;
+}
+:root[data-dark] .bg-white,
 :root[data-dark] .bg-gray-100,
 :root[data-dark] .bg-blue-50,
 :root[data-dark] .bg-sky-50,
-:root[data-dark] .bg-teal-50,
-:root[data-dark] .bg-orange-50,
-:root[data-dark] .bg-lime-50,
-:root[data-dark] .bg-red-50,
-:root[data-dark] .bg-slate-200,
 :root[data-dark] .bg-sky-100,
-:root[data-dark] .bg-slate-50\/95 {
-  background-color: #000000;
-}
-:root[data-dark] .bg-white,
-:root[data-dark] .bg-slate-50,
-:root[data-dark] .bg-gray-100,
-:root[data-dark] .bg-sky-50,
 :root[data-dark] .bg-teal-50,
 :root[data-dark] .bg-orange-50,
 :root[data-dark] .bg-lime-50,
-:root[data-dark] .bg-blue-50 {
-  outline: 2px solid #6b7280;
-  outline-offset: -2px;
+:root[data-dark] .bg-red-50 {
+  background-color: #1f1f1f;
 }
-:root[data-dark] main { background-color: #000000; }
+/* 카드 안의 옅은 칸(빠른 말, 목소리 칸)은 카드보다 한 단계 더 밝게 */
+:root[data-dark] .bg-white .bg-slate-50,
+:root[data-dark] .bg-white .bg-teal-50 { background-color: #2a2a2a; }
 :root[data-dark] .text-ink,
 :root[data-dark] .text-navy,
 :root[data-dark] .text-brand-dark,
@@ -68,7 +62,7 @@ body {
 :root[data-dark] .text-muted,
 :root[data-dark] .text-gray-400 { color: var(--color-muted); }
 :root[data-dark] input,
-:root[data-dark] textarea { background-color: #111111; color: var(--color-ink); border-color: #9ca3af; }
+:root[data-dark] textarea { background-color: #1f1f1f; color: var(--color-ink); border-color: #9ca3af; }
 :root[data-dark] .border-slate-200,
 :root[data-dark] .border-slate-300,
 :root[data-dark] .border-gray-200,
