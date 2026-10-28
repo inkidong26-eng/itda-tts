@@ -10,6 +10,7 @@ export type Message = {
   at: number;             // 보낸 시각 (ms)
   result?: "done" | "fallback" | "failed";
   emotion?: { emotion: EmotionCode; intensity: number; tremor: number }; // 말풍선 색·아이콘, 대화 흐름(04 문서 3절)
+  alt?: string;           // 통역: 다른 언어 글 (내 말 → 번역문, 상대 말 → 원문)
 };
 
 export type HistoryStore = {

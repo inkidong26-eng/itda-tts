@@ -12,7 +12,7 @@ from app.calls import CallManager
 from app.config import load_settings
 from app.db import Database
 from app.rate_limit import RateLimiter
-from app.routers import auth, calls, tts, voices
+from app.routers import auth, calls, translate, tts, voices
 from app.storage import AudioStorage
 from app.tts_client import TtsPool
 from app.tts_service import TtsService
@@ -69,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(voices.router)
     app.include_router(tts.router)
     app.include_router(calls.router)
+    app.include_router(translate.router)
     # 개발용 음성 파일 제공. 배포(T20)에서는 Caddy 가 /a/* 를 직접 제공한다
     app.mount("/a", StaticFiles(directory=storage.directory), name="audio")
 

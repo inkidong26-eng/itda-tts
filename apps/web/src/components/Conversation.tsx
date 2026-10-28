@@ -70,6 +70,7 @@ export function MessageList({ messages, live, onRetry, bus, failText }: {
               {m.text}
               {m.emotion && m.emotion.tremor > 0 && <span aria-label="떨림" className="ml-1">{"〰".repeat(m.emotion.tremor)}</span>}
             </p>
+            {m.alt && <p className="mt-1 max-w-[85%] text-base text-muted" aria-label={m.role === "me" ? "통역된 글" : "원문"}>🌐 {m.alt}</p>}
             {live[m.id] && <div className="mt-1 w-2/3"><SpeakingBar id={m.id} color={emo?.color ?? "#1A9A9A"} bus={bus} /></div>}
             {status && (
               <p className={`mt-1 text-base ${TONE[status.tone]}`}>

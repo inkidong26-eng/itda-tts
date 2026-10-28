@@ -22,6 +22,7 @@ export type PlayItem = {
   url?: string | null;
   text: string;          // 비상 음성이 읽을 글 (서버의 displayText)
   fallback?: boolean;    // 서버가 fallback:true 를 준 경우
+  lang?: string;         // 기본 목소리 언어 (통역: en-US 등). 없으면 한국어
 };
 
 type Utterance = {
@@ -179,9 +180,10 @@ export function createPlayer(deps: PlayerDeps) {
         return resolve();
       }
       const u = deps.makeUtterance(item.text);
-      u.lang = "ko-KR";
-      const korean = speech.getVoices().find((v) => v.lang?.toLowerCase().startsWith("ko"));
-      if (korean) u.voice = korean;
+      u.lang = item.lang ?? "ko-KR";
+      const prefix = u.lang.slice(0, 2).toLowerCase();
+      const voice = speech.getVoices().find((v) => v.lang?.toLowerCase().startsWith(prefix));
+      if (voice) u.voice = voice;
       speaking = u;
       let started = false;
       let done = false;

@@ -1,15 +1,16 @@
 // S6 마주보고 대화 (02 문서). 위쪽은 180° 뒤집어 맞은편 청인이 읽고, 아래쪽은 농인이 쓴다.
 // 약속: 보낸 글은 어떤 오류에서도 소리로 나간다 (서버가 안 되면 폰 기본 음성).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, speak, type TtsResult } from "../api/client";
+import { ApiError, speak, translate, type TtsResult } from "../api/client";
 import { type PlayerEvent, player, unlockAudio } from "../audio/player";
 import { Composer, type Live, MessageList } from "../components/Conversation";
 import { EdgeGlow, HighlightText } from "../components/Feedback";
 import { useNowPlaying, useVibration } from "../feedback/hooks";
 import type { Turn } from "../emotion/context";
 import { emotionInfo, type EmotionResult } from "../emotion/types";
-import { HelpButton, Notice } from "../components/ui";
+import { Button, HelpButton, Notice } from "../components/ui";
 import { HELP } from "../lib/help";
+import { hasTranslateConsent, langInfo, LANGUAGES, type LangCode, saveTranslateConsent, TRANSLATE_CONSENT } from "../lib/languages";
 import { createOrdered } from "../lib/ordered";
 import { speechText } from "../lib/speechText";
 import { useCaptions } from "../stt/useCaptions";
@@ -33,7 +34,12 @@ const newId = () => `m${Date.now().toString(36)}${(seq++).toString(36)}`;
 export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, speaker = false }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [live, setLive] = useState<Record<string, Live>>({});
-  const [problem, setProblem] = useState<"offline" | "auth" | "busy" | "empty" | null>(null);
+  const [problem, setProblem] = useState<"offline" | "auth" | "busy" | "empty" | "translate" | null>(null);
+  // 통역 (11 문서 5절): 상대 언어. 한국어면 통역 없이 지금과 같다
+  const [partner, setPartner] = useState<LangCode>("ko");
+  const [langOpen, setLangOpen] = useState(false);
+  const [askConsent, setAskConsent] = useState<LangCode | null>(null);
+  const foreign = partner !== "ko";
   const inOrder = useMemo(() => createOrdered(), []);
   const nowPlaying = useNowPlaying();
   useVibration(view.vibrate);
@@ -77,11 +83,32 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
   useEffect(() => () => player.stopAll(), []);
 
   // 청인 말 자막 (T11): 확정된 말만 대화 기록에 '상대' 말풍선으로 남긴다
+  const update = (id: string, patch: Partial<Message>) => setMessages((list) => list.map((m) => {
+    if (m.id !== id) return m;
+    const next = { ...m, ...patch };
+    void history.put(next);
+    return next;
+  }));
   const captions = useCaptions((text) => {
     const message: Message = { id: newId(), role: "other", text, at: Date.now() };
     setMessages((list) => [...list, message]);
     void history.put(message);
-  });
+    if (!foreignRef.current) return;
+    // 통역: 상대 말(외국어) → 한국어. 안 되면 원문 그대로 둔다
+    const from = foreignRef.current;
+    translate(session.token, text, from, "ko")
+      .then((r) => update(message.id, { text: r.text, alt: text }))
+      .catch(() => setProblem("translate"));
+  }, langInfo(partner).speech);
+  const foreignRef = useRef<LangCode | null>(null);
+  foreignRef.current = foreign ? partner : null;
+
+  const choose = (code: LangCode) => {
+    if (code !== "ko" && !hasTranslateConsent()) { setAskConsent(code); return; }
+    setPartner(code);
+    setLangOpen(false);
+    setAskConsent(null);
+  };
 
   const send = (text: string, emotion?: EmotionResult, existing?: Message) => {
     unlockAudio(); // 보내기 터치 안에서 소리 장치를 깨운다 (아이폰)
@@ -98,6 +125,22 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
     if (!existing) {
       setMessages((list) => [...list, message]);
       void history.put(message);
+    }
+    if (foreign) {
+      // 통역: 번역 → 상대 언어 기본 목소리로 말한다 (GPU 목소리는 한국어 전용). 번역이 안 되면 한국어로 말한다
+      const target = langInfo(partner);
+      const translated = translate(session.token, text, "ko", partner).catch(() => null);
+      void inOrder(translated, (r) => {
+        if (r) {
+          update(id, { alt: r.text });
+          player.enqueue({ id, fallback: true, text: r.text, lang: target.speech });
+        } else {
+          setProblem("translate");
+          player.enqueue({ id, fallback: true, text: speechText(text) || text });
+        }
+        setLive((cur) => (cur[id]?.state === "sending" ? { ...cur, [id]: { ...cur[id], state: "queued" } } : cur));
+      });
+      return;
     }
     // 서버 요청은 바로 보내고, 재생은 보낸 순서대로
     const request: Promise<TtsResult | ApiError> = session.voiceId
@@ -125,6 +168,8 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
   const topMessage = (nowPlaying && messages.find((m) => m.id === nowPlaying)) || lastMine;
   const colorOf = (m?: Message) => (m?.emotion ? emotionInfo(m.emotion.emotion).color : "#1A9A9A");
   const edge = colorOf(topMessage);
+  // 위쪽(상대가 읽는 쪽)은 통역된 글을 보여 준다
+  const topText = topMessage ? (topMessage.role === "me" && topMessage.alt) || topMessage.text : "";
   const latest = useRef(messages);
   latest.current = messages;
   const colorFor = useCallback((id: string) => colorOf(latest.current.find((m) => m.id === id)), []);
@@ -136,30 +181,62 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
       {view.showTop && !speaker && (
         <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] [@media(max-height:700px)]:basis-[22%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
           {/* 180° 돌려 놓았으므로 border-t 가 화면에서는 위·아래 경계선(가운데)에 보인다 */}
-          <p className={`text-center font-bold leading-snug text-ink ${(topMessage?.text.length ?? 0) > 40 ? "text-2xl" : "text-3xl"}`}>
+          {foreign && <p className="mb-1 text-center text-base font-semibold text-muted">{langInfo(partner).flag} {langInfo(partner).native}</p>}
+          <p className={`text-center font-bold leading-snug text-ink ${topText.length > 40 ? "text-2xl" : "text-3xl"}`}>
             {topMessage?.emotion && <span aria-hidden="true">{emotionInfo(topMessage.emotion.emotion).icon} </span>}
             {topMessage
-              ? <HighlightText id={topMessage.id === nowPlaying ? nowPlaying : undefined} text={topMessage.text} color={edge} />
+              ? <HighlightText id={topMessage.id === nowPlaying ? nowPlaying : undefined} text={topText} color={edge} />
               : "안녕하세요. 저는 글로 말해요. 제 말은 목소리로 들리고 여기에도 크게 보여요."}
           </p>
         </section>
       )}
 
       <section aria-label="내 쪽" className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-3 pt-2">
-        <div className="flex gap-2">
-          <button type="button" onClick={onHome} className="min-h-[56px] rounded-xl border-2 border-navy px-3 font-bold text-navy">← 홈</button>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={onHome} className="min-h-[56px] whitespace-nowrap rounded-xl border-2 border-navy px-3 font-bold text-navy">← 홈</button>
           <button type="button" onClick={() => onView({ ...view, font: ((view.font + 1) % FONT_STEPS.length) as FontStep })}
-            className="min-h-[56px] flex-1 rounded-xl border-2 border-gray-400 px-2 font-semibold">가 글자: {font.label}</button>
+            aria-label={`글자 크기: ${font.label}`} className="min-h-[56px] flex-1 whitespace-nowrap rounded-xl border-2 border-gray-400 px-2 text-base font-semibold">가 {font.label}</button>
           {!speaker && (
             <button type="button" onClick={() => onView({ ...view, showTop: !view.showTop })}
-              className="min-h-[56px] flex-1 rounded-xl border-2 border-gray-400 px-2 font-semibold">
-              {view.showTop ? "위쪽 숨기기" : "위쪽 보이기"}
+              className="min-h-[56px] flex-1 whitespace-nowrap rounded-xl border-2 border-gray-400 px-2 text-base font-semibold">
+              {view.showTop ? "위쪽 숨김" : "위쪽 보임"}
             </button>
           )}
-          <HelpButton help={speaker ? HELP.speaker : HELP.face} />
+          {!speaker && (
+            <button type="button" onClick={() => { setLangOpen((o) => !o); setAskConsent(null); }} aria-expanded={langOpen}
+              aria-label={`상대 언어: ${langInfo(partner).label}`}
+              className={`min-h-[56px] min-w-[52px] shrink-0 rounded-xl border-2 px-2 text-xl ${foreign ? "border-[#0e6582] bg-teal-50" : "border-gray-400"}`}>
+              🌐
+            </button>
+          )}
+          <div className="shrink-0"><HelpButton help={speaker ? HELP.speaker : HELP.face} /></div>
         </div>
+        {langOpen && (
+          <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-sm" role="group" aria-label="상대 언어 고르기">
+            <p className="text-base font-semibold">🌐 상대방 언어</p>
+            {askConsent ? (
+              <>
+                <p className="text-base">{TRANSLATE_CONSENT}</p>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={() => { saveTranslateConsent(); choose(askConsent); }}>동의하고 켜기</Button>
+                  <Button variant="secondary" className="flex-1" onClick={() => setAskConsent(null)}>취소</Button>
+                </div>
+              </>
+            ) : (
+              <div className="grid grid-cols-4 gap-1">
+                {LANGUAGES.map((l) => (
+                  <button key={l.code} type="button" aria-pressed={partner === l.code} onClick={() => choose(l.code)}
+                    className={`flex min-h-[56px] flex-col items-center justify-center rounded-xl border-2 text-sm font-semibold ${partner === l.code ? "border-[#0e6582] bg-teal-50" : "border-slate-200"}`}>
+                    <span aria-hidden="true" className="text-xl leading-none">{l.flag}</span>{l.native}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {speaker && <p className="text-base text-muted">📱 스피커 방식: 볼륨 최대 · 상대 말 자막은 나오지 않아요</p>}
         {problem === "offline" && <Notice kind="error">인터넷 연결을 확인해 주세요. 지금은 기본 목소리로 말해요</Notice>}
+        {problem === "translate" && <Notice kind="error">통역이 잠시 안 돼요. 원래 글(한국어)로 보여 주고 말할게요</Notice>}
         {problem === "empty" && <Notice kind="error">읽을 글자가 없어요. 글자를 함께 적어 주세요</Notice>}
         {problem === "busy" && <Notice kind="error">너무 빨리 보내고 있어요. 지금은 기본 목소리로 말해요</Notice>}
         {problem === "auth" && (

@@ -42,7 +42,7 @@ export class Recognizer {
   private paused = false;
   private running = false;
 
-  constructor(private h: SttHandlers) {}
+  constructor(private h: SttHandlers, private lang = "ko-KR") {}
 
   /** 자동 감지: 말할 때마다 자막. 멈추면 저절로 다시 듣기 시작 */
   startAuto(): void {
@@ -85,7 +85,7 @@ export class Recognizer {
     }
     try {
       const rec = new Ctor();
-      rec.lang = "ko-KR";
+      rec.lang = this.lang; // 통역: 상대 언어로 듣는다
       rec.continuous = this.mode === "auto";
       rec.interimResults = true;
       rec.onresult = (e) => {

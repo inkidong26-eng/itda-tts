@@ -9,7 +9,7 @@ const RESUME_DELAY_MS = 400;
 
 export type CaptionProblem = "unsupported" | "denied" | "other" | null;
 
-export function useCaptions(onFinal: (text: string) => void) {
+export function useCaptions(onFinal: (text: string) => void, lang = "ko-KR") {
   const [on, setOn] = useState(false);
   const [interim, setInterim] = useState("");
   const [speaking, setSpeaking] = useState(false);
@@ -35,9 +35,26 @@ export function useCaptions(onFinal: (text: string) => void) {
         setInterim("");
         setProblem(kind);
       },
-    });
+    }, lang);
     return rec.current;
   };
+
+  // 통역 언어를 바꾸면 듣던 것을 멈추고 새 언어로 다시 듣는다
+  const langRef = useRef(lang);
+  useEffect(() => {
+    if (langRef.current === lang) return;
+    langRef.current = lang;
+    const wasOn = rec.current?.listening || on;
+    rec.current?.stop();
+    rec.current = null;
+    setInterim("");
+    if (wasOn && sttSupported()) {
+      const r = get();
+      if (player.nowPlaying()) r.pause();
+      r.startAuto();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;

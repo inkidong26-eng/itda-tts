@@ -106,6 +106,11 @@ export function speak(token: string, text: string, voiceId: string, emotion?: Em
   return request<TtsResult>("POST", "/tts", token, { text, voiceId, ...(emotion ? { emotion } : {}) });
 }
 
+/** 통역 (DeepL). 실패하면 화면은 원문으로 계속 */
+export function translate(token: string, text: string, source: string, target: string) {
+  return request<{ text: string }>("POST", "/translate", token, { text, source, target });
+}
+
 export type CallInfo = { callId: string; joinUrl: string; qrSvg: string; expiresAt: string };
 
 /** 링크 통화 방 만들기 (농인) */
