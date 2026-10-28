@@ -36,6 +36,14 @@ class QwenSpikeEngine:
     def load(self, name: str) -> None:
         self._model(name)
 
+    def unload(self, name: str) -> None:
+        """모델을 내려 메모리를 비운다 (두 모델을 한꺼번에 올리면 RAM 31GB 서버에서 멈춤, 10/24)."""
+        import gc
+
+        if self._models.pop(name, None) is not None:
+            gc.collect()
+            self._torch.cuda.empty_cache()
+
     def design(self, texts: list[str], instructs: list[str], seed: int, **gen):
         self._torch.manual_seed(seed)
         wavs, sr = self._model("design").generate_voice_design(
@@ -72,6 +80,9 @@ class FakeEngine:
         self._rng = np.random.default_rng(0)
 
     def load(self, name: str) -> None:
+        pass
+
+    def unload(self, name: str) -> None:
         pass
 
     def _wav(self, text: str) -> np.ndarray:

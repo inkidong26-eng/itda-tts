@@ -64,13 +64,28 @@ def wave_svg(wav: np.ndarray, bars: int = 60) -> str:
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {bars * 5} 40" fill="#1A9A9A">{rects}</svg>'
 
 
-def build_voice(engine, voice: dict, out: Path, seed: int, candidates: int) -> dict:
+def design_candidates(engine, voice: dict, out: Path, seed: int, candidates: int) -> None:
+    """1단계 (설계 모델만): 감정 7 × 후보 N 을 만들어 저장. 이미 있는 감정은 건너뛴다 (끊겨도 이어서)."""
+    cdir = out / voice["id"] / "cand"
+    for code, label, ref_text, hint in EMOTIONS:
+        if all((cdir / f"{code}_{i + 1}.wav").exists() for i in range(candidates)):
+            continue
+        t0 = time.time()
+        wavs, sr = engine.design([ref_text] * candidates, [f"{voice['design']}. {hint}"] * candidates, seed)
+        for i, w in enumerate(wavs):
+            # 앞 숨소리·잡음 자르기 (10/24 청취: 기준음성 43% 숨소리)
+            save_wav(cdir / f"{code}_{i + 1}.wav", trim_leading(w, sr), sr)
+        log(f"   {voice['id']} {label} 후보 {candidates}개 ({time.time() - t0:.0f}초)")
+
+
+def pick_and_finish(engine, voice: dict, out: Path, seed: int, candidates: int) -> dict:
+    """2단계 (복제 모델만): 같은 사람 점수로 감정마다 하나 추천, 미리듣기·파형·meta.json."""
     vdir = out / voice["id"]
     meta = {"id": voice["id"], "name": voice["name"], "seed": seed, "emotions": {}}
     calm_embed = None
-    for code, label, ref_text, hint in EMOTIONS:
-        wavs, sr = engine.design([ref_text] * candidates, [f"{voice['design']}. {hint}"] * candidates, seed)
-        wavs = [trim_leading(w, sr) for w in wavs]  # 앞 숨소리·잡음 자르기 (10/24 청취: 기준음성 43% 숨소리)
+    for code, label, ref_text, _ in EMOTIONS:
+        loaded = [sf.read(vdir / "cand" / f"{code}_{i + 1}.wav", dtype="float32") for i in range(candidates)]
+        wavs, sr = [w for w, _ in loaded], loaded[0][1]
         embeds = [engine.embed(w, sr) for w in wavs]
         if calm_embed is None:
             # 평온: 후보끼리 가장 닮은 것(가장 '대표'인 목소리)을 기준으로 삼는다
@@ -78,8 +93,6 @@ def build_voice(engine, voice: dict, out: Path, seed: int, candidates: int) -> d
         else:
             scores = [cosine(e, calm_embed) for e in embeds]
         best = int(np.argmax(scores))
-        for i, w in enumerate(wavs):
-            save_wav(vdir / "cand" / f"{code}_{i + 1}.wav", w, sr)
         shutil.copyfile(vdir / "cand" / f"{code}_{best + 1}.wav", vdir / f"{code}.wav")
         if calm_embed is None:
             calm_embed = embeds[best]
@@ -235,20 +248,39 @@ def main() -> None:
 
     voices = json.loads(DESIGNS.read_text(encoding="utf-8"))
     only = {s.strip() for s in args.only.split(",") if s.strip()}
-    todo = [v for v in voices if (v["id"] in only) if only] if only else voices
-    done, failed, skipped = [], [], []
+    todo = [v for v in voices if v["id"] in only] if only else voices
+    for v in todo:
+        if only:
+            shutil.rmtree(out / v["id"], ignore_errors=True)  # --only 는 처음부터 다시 (--seed 를 바꿔 쓴다)
+    skipped = [v["id"] for v in todo if (out / v["id"] / "meta.json").exists()]  # 끊겼다 다시 돌려도 이미 끝난 것은 건너뜀
+    todo = [v for v in todo if v["id"] not in skipped]
+    done, failed = [], []
     started = time.time()
-    log(f"GPU: {getattr(engine, 'gpu', '?')} / 목소리 {len(todo)}개 × 감정 {len(EMOTIONS)} × 후보 {args.candidates}")
+    log(f"GPU: {getattr(engine, 'gpu', '?')} / 목소리 {len(todo)}개 × 감정 {len(EMOTIONS)} × 후보 {args.candidates}"
+        + (f" (이미 끝난 {len(skipped)}개 건너뜀)" if skipped else ""))
+
+    # 1단계: 설계 모델 하나만 올려 후보를 모두 만든다
+    log("1단계: 후보 만들기 (설계 모델)")
     for n, voice in enumerate(todo, 1):
-        if not only and (out / voice["id"] / "meta.json").exists():
-            skipped.append(voice["id"])  # 끊겼다 다시 돌릴 때 이미 만든 것은 건너뛴다 (GPU 시간 절약)
-            continue
         t0 = time.time()
         try:
-            build_voice(engine, voice, out, args.seed, args.candidates)
-            done.append(voice["id"])
-            log(f"[{n}/{len(todo)}] {voice['id']} {voice['name']} 완료 ({time.time() - t0:.0f}초)")
+            design_candidates(engine, voice, out, args.seed, args.candidates)
+            log(f"[{n}/{len(todo)}] {voice['id']} {voice['name']} 후보 완료 ({time.time() - t0:.0f}초)")
         except Exception as exc:  # 한 목소리가 실패해도 나머지는 계속
+            failed.append(f"{voice['id']}: {exc!r}")
+            log(f"[{n}/{len(todo)}] ⚠️ {voice['id']} 실패: {exc!r}")
+    engine.unload("design")
+
+    # 2단계: 복제 모델 하나만 올려 추천·미리듣기
+    log("2단계: 추천·미리듣기 (복제 모델)")
+    for n, voice in enumerate(todo, 1):
+        if any(f.startswith(voice["id"] + ":") for f in failed):
+            continue
+        try:
+            pick_and_finish(engine, voice, out, args.seed, args.candidates)
+            done.append(voice["id"])
+            log(f"[{n}/{len(todo)}] {voice['id']} {voice['name']} 완료")
+        except Exception as exc:
             failed.append(f"{voice['id']}: {exc!r}")
             log(f"[{n}/{len(todo)}] ⚠️ {voice['id']} 실패: {exc!r}")
     summary = {"gpu": getattr(engine, "gpu", "?"), "seed": args.seed, "minutes": round((time.time() - started) / 60, 1),

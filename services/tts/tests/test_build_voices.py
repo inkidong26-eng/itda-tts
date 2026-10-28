@@ -35,3 +35,16 @@ def test_build_apply_and_resume(tmp_path):
     run("--out", str(out))
     summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
     assert summary["skipped"] == ["v20f1", "v50m1"] and len(summary["done"]) == 12 and not summary["failed"]
+
+
+def test_resume_after_interruption_keeps_candidates(tmp_path):
+    """후보는 만들었는데 끝나기 전에 끊긴 경우: 후보는 다시 만들지 않고 마무리만 한다."""
+    out = tmp_path / "voices"
+    run("--out", str(out), "--only", "v20f1")
+    v = out / "v20f1"
+    before = (v / "cand" / "joy_2.wav").stat().st_mtime_ns
+    (v / "meta.json").unlink()
+    (v / "cand" / "sad_3.wav").unlink()  # 감정 하나는 덜 만든 상태
+    run("--out", str(out))
+    assert (v / "meta.json").exists() and (v / "cand" / "sad_3.wav").exists()
+    assert (v / "cand" / "joy_2.wav").stat().st_mtime_ns == before

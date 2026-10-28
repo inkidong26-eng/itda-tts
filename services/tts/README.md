@@ -172,3 +172,17 @@ shutil.make_archive("/workspace/voices_final", "zip", dst)
    → `voices_final.zip` 을 Download.
 5. **⚠️ 서버 끄기: ⋮ → Stop Pod → 다시 ⋮ → Terminate Pod** (Stop만 하면 디스크 요금이 계속 나감)
 6. review.html 에서 고르고 [결과 복사] → 대화창에 붙여 넣기. 바꿀 것이 있으면 다음에 GPU를 켤 때 `--apply` 로 적용한다.
+
+## F. 같은 GPU 에서 음성 서버 켜고 API 와 연결 (E 바로 다음)
+E 에서 만든 `/workspace/voices` 를 그대로 쓴다. **GPU 서버를 켤 때 HTTP 포트에 8001 을 추가**해 둔다 (Deploy 화면 Set overrides → Expose HTTP ports).
+
+Jupyter 새 칸:
+```python
+import secrets, os, subprocess
+key = secrets.token_hex(16); print("TTS_KEY =", key)   # 이 값을 API 서버 .env 에도 넣는다
+env = dict(os.environ, TTS_KEY=key, TTS_VOICES_DIR="/workspace/voices")
+subprocess.Popen("cd itda-tts/services/tts && nohup uvicorn server:app --host 0.0.0.0 --port 8001 > /workspace/tts.log 2>&1 &", shell=True, env=env)
+```
+1–2분 뒤 확인: `!tail -3 /workspace/tts.log` → `Application startup complete` 가 보이면 됨.
+주소는 `https://{Pod ID}-8001.proxy.runpod.net` (Pod ID 는 RunPod 화면의 ID).
+API 서버(VPS) `.env` 의 `TTS_ENDPOINTS` 에 그 주소, `TTS_KEY` 에 위 값을 넣고 `bash /opt/itda/infra/deploy.sh`.

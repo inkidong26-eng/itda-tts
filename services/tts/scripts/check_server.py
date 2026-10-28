@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-DESCRIPTION = "20대 여성, 밝고 또렷한 목소리"
+VOICE = "v20f1"  # 방식 A: 만들어 둔 목소리를 복제 (build_voices.py)
 TEXT = "안녕하세요, 만나서 반가워요."
 
 
@@ -48,6 +48,7 @@ def main() -> None:
     parser.add_argument("--key", required=True)
     parser.add_argument("--out", default="t02_out")
     parser.add_argument("--wait", type=int, default=900)
+    parser.add_argument("--voice", default=VOICE)
     args = parser.parse_args()
     base = args.url.rstrip("/")
     out = Path(args.out)
@@ -69,7 +70,7 @@ def main() -> None:
     for i in range(1, 4):
         started = time.perf_counter()
         wav, headers = call(f"{base}/synthesize", args.key, "POST",
-                      {"mode": "design", "description": DESCRIPTION, "text": TEXT, "seed": i})
+                      {"voiceId": args.voice, "emotion": "calm", "text": TEXT, "seed": i})
         sec = time.perf_counter() - started
         times.append(sec)
         path = out / f"t02_seed{i}.wav"
