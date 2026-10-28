@@ -1,22 +1,24 @@
 // S8 받는 화면 (청인, 가입·설치 없음 — 규칙 6). 02 문서 S8, 06 문서 2절.
 // 농인 글 → 이 폰에서 음성 자동 재생 + 큰 글씨 + 감정 아이콘. 실제 재생 상태(시작·크기·끝)를 농인 폰으로 보낸다.
 // 내 말 → 자막(브라우저 음성 인식). 우리 음성이 나오는 동안은 인식을 멈춘다. 마이크가 안 되면 글로 답하기.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, getCall } from "../api/client";
 import { player, unlockAudio } from "../audio/player";
 import { CallConnection, type CallMessage, type ConnState, wsUrl } from "../call/connection";
 import { HighlightText } from "../components/Feedback";
-import { Button, HelpButton, Notice, Screen } from "../components/ui";
+import { Button, Card, HelpButton, Notice, Screen } from "../components/ui";
 import { HELP } from "../lib/help";
 import { emotionInfo, type EmotionCode } from "../emotion/types";
 import { Recognizer, sttSupported } from "../stt/recognizer";
 import { useKeepScreenOn } from "../lib/wakeLock";
+import { detectInApp, externalUrl, type InApp } from "../lib/inApp";
 
 type Heard = { msgId: string; text: string; emotion?: EmotionCode };
 
 export function ReceivePage({ callId }: { callId: string }) {
   const [phase, setPhase] = useState<"loading" | "missing" | "busy" | "intro" | "talking" | "ended">("loading");
   const [deafName, setDeafName] = useState("");
+  const inApp = useMemo(() => detectInApp(navigator.userAgent), []);
   useKeepScreenOn(phase === "intro" || phase === "talking"); // 통화 중 화면이 꺼지지 않게
   const [conn, setConn] = useState<ConnState>("connecting");
   const [deafOnline, setDeafOnline] = useState(true);
@@ -106,8 +108,25 @@ export function ReceivePage({ callId }: { callId: string }) {
   };
 
   if (phase === "loading") return <Screen><p className="text-xl">⏳ 불러오는 중…</p></Screen>;
-  if (phase === "busy") return <Screen title="이미 통화 중이에요"><p>다른 분이 이 통화에 먼저 들어와 있어요.</p></Screen>;
-  if (phase === "missing") return <Screen title="없거나 끝난 통화예요"><p>링크를 보낸 분께 새 링크를 받아 주세요.</p></Screen>;
+  if (phase === "busy") {
+    // 10/24 실제 폰 시험: 링크를 보낸 농인 본인이 자기 링크를 눌러 이 화면이 나왔다
+    return (
+      <Screen title="이미 대화 중인 링크예요">
+        <p className="text-lg">이 링크로 다른 분이 먼저 들어와 있어요.</p>
+        <Card className="flex flex-col gap-3">
+          <p className="text-lg"><b>링크를 보낸 본인이라면</b><br />이 창을 닫고, 링크를 만든 <b>ITDA 통화 화면</b>으로 돌아가세요. 그 화면에서 대화하면 돼요.</p>
+          <p className="text-lg"><b>링크를 받은 분이라면</b><br />보낸 분께 <b>새 링크</b>를 부탁해 주세요.</p>
+        </Card>
+      </Screen>
+    );
+  }
+  if (phase === "missing") {
+    return (
+      <Screen title="끝났거나 없는 대화예요">
+        <p className="text-lg">링크가 오래되었거나 대화가 끝났어요. 보낸 분께 <b>새 링크</b>를 부탁해 주세요.</p>
+      </Screen>
+    );
+  }
   if (phase === "ended") return <Screen title="📞 통화가 끝났어요"><p>이용해 주셔서 고마워요.</p></Screen>;
 
   if (phase === "intro") {
@@ -122,6 +141,8 @@ export function ReceivePage({ callId }: { callId: string }) {
           <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-32" />
           <HelpButton help={HELP.receive} />
         </div>
+
+        {inApp && <InAppNotice kind={inApp} />}
 
         <section className="flex flex-col gap-2 rounded-3xl bg-white px-5 py-6 text-center shadow-sm">
           <h1 className="text-2xl font-bold leading-snug">{deafName}님이 대화를 요청했어요</h1>
@@ -198,5 +219,24 @@ export function ReceivePage({ callId }: { callId: string }) {
         <Button className="!w-auto px-5" onClick={sendTyped} disabled={!typing.trim()}>보내기</Button>
       </div>
     </main>
+  );
+}
+
+/** 카카오톡 등 앱 안에서 열렸을 때: 소리가 안 날 수 있어 바깥 브라우저로 넘기는 버튼 */
+function InAppNotice({ kind }: { kind: NonNullable<InApp> }) {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const target = externalUrl(kind, window.location.href, ua);
+  const browser = isIOS ? "사파리" : "크롬";
+  return (
+    <section className="flex flex-col gap-2 rounded-2xl border-2 border-orange-300 bg-orange-50 p-4">
+      <p className="text-lg font-bold">🔊 {kind === "kakao" ? "카카오톡" : "앱"} 안에서 열렸어요</p>
+      <p className="text-base">여기서는 목소리가 안 들릴 수 있어요. {browser}에서 열어 주세요.</p>
+      {target ? (
+        <Button onClick={() => { window.location.href = target; }}>{isIOS ? "사파리로" : "크롬으로"} 열기</Button>
+      ) : (
+        <p className="text-base">오른쪽 위 <b>⋯</b> 메뉴 → <b>"{browser}에서 열기"</b>를 눌러 주세요.</p>
+      )}
+    </section>
   );
 }
