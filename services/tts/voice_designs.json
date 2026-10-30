@@ -1,9 +1,9 @@
 [
-  {"id": "v10m1", "name": "새싹", "ageGroup": "10s", "gender": "m", "design": "A Korean high school boy around 18, clearly male, youthful and bright male voice, lively and energetic, speaks at a brisk natural pace, speaking natural Korean", "tags": ["맑음", "가벼움", "밝음"]},
+  {"id": "v10m1", "name": "새싹", "ageGroup": "10s", "gender": "m", "design": "A Korean young man around 19, clearly male, adult male voice that has fully broken, mid-low pitch, lively and energetic, speaks at a brisk natural pace, speaking natural Korean", "tags": ["맑음", "가벼움", "밝음"]},
   {"id": "v10f1", "name": "이슬", "ageGroup": "10s", "gender": "f", "design": "10대 후반 여학생, 맑고 높은 목소리, 생기 있고 또렷한 발음", "tags": ["맑음", "높음", "생기"]},
   {"id": "v20m1", "name": "햇살", "ageGroup": "20s", "gender": "m", "design": "A Korean man in his mid 20s, clearly male, youthful clear male voice, bright, upbeat and lively, speaks at a brisk natural conversational pace, speaking natural Korean", "tags": ["부드러움", "또렷함", "친근함"]},
   {"id": "v20f1", "name": "봄볕", "ageGroup": "20s", "gender": "f", "design": "20대 중반 여성, 밝고 또렷한 목소리, 말이 약간 빠르고 경쾌함", "tags": ["밝음", "또렷함", "경쾌함"]},
-  {"id": "v30m1", "name": "바람", "ageGroup": "30s", "gender": "m", "design": "A Korean man in his early 30s, clearly male, clear mid-low male voice, confident and energetic, speaks at a brisk natural conversational pace, speaking natural Korean", "tags": ["중저음", "차분함", "신뢰"]},
+  {"id": "v30m1", "name": "바람", "ageGroup": "30s", "gender": "m", "design": "A Korean man in his early 30s, clearly male, low-pitched adult male voice, confident and energetic, speaks at a brisk natural conversational pace, speaking natural Korean", "tags": ["중저음", "차분함", "신뢰"]},
   {"id": "v30f1", "name": "단비", "ageGroup": "30s", "gender": "f", "design": "30대 여성, 따뜻하고 부드러운 중간 톤, 차분한 속도", "tags": ["따뜻함", "부드러움", "차분함"]},
   {"id": "v40m1", "name": "느티", "ageGroup": "40s", "gender": "m", "design": "A Korean man in his early 40s, clearly male, warm mid-low male voice, confident and energetic, natural conversational pace, not slow, speaking natural Korean", "tags": ["묵직함", "편안함", "여유"]},
   {"id": "v40f1", "name": "가람", "ageGroup": "40s", "gender": "f", "design": "40대 여성, 단정하고 또렷한 목소리, 다정하지만 힘 있는 말투", "tags": ["단정함", "다정함", "힘"]},
