@@ -1,7 +1,7 @@
 // API 서버 호출 (07 문서 5절). 모든 요청에 제한 시간을 둔다.
 
 const BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "/api";
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 10000; // 서버는 7초 안에 답한다 (10/30: 4초 → 7초)
 
 export type VoiceCard = {
   easy?: string;
@@ -99,7 +99,7 @@ export type TtsResult = {
   displayText: string; // 비상 음성이 읽을 글 (정규화됨)
 };
 
-/** 글 → 음성. 서버는 4초 안에 반드시 답한다 (늦으면 fallback:true) */
+/** 글 → 음성. 서버는 7초 안에 반드시 답한다 (늦으면 fallback:true) */
 export type EmotionPayload = { emotion: string; intensity: number; tremor: number };
 
 export function speak(token: string, text: string, voiceId: string, emotion?: EmotionPayload) {

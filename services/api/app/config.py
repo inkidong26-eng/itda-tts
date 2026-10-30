@@ -52,7 +52,7 @@ def load_settings() -> Settings:
         tts_key=os.getenv("TTS_KEY", ""),
         tts_max_concurrency=int(os.getenv("TTS_MAX_CONCURRENCY", "4")),
         tts_start_timeout_s=int(os.getenv("TTS_START_TIMEOUT_MS", "2500")) / 1000,
-        tts_total_timeout_s=int(os.getenv("TTS_TOTAL_TIMEOUT_MS", "4000")) / 1000,
+        tts_total_timeout_s=int(os.getenv("TTS_TOTAL_TIMEOUT_MS", "7000")) / 1000,
         tts_limit_per_min=int(os.getenv("TTS_LIMIT_PER_MIN", "20")),
         web_base=os.getenv("WEB_BASE", "http://localhost:5173").rstrip("/"),  # 통화 참여 링크 주소
         deepl_key=os.getenv("DEEPL_KEY", "").strip(),
