@@ -33,7 +33,8 @@ DESIGNS = Path(__file__).resolve().parent.parent / "voice_designs.json"
 PREVIEW = "안녕하세요, 저는 {name}이에요. 만나서 반가워요."
 MARKS = ["좋음", "숨소리", "다른사람", "어색"]
 # 설계 설명이 영어인 목소리는 감정 지시도 영어로 (10/30: 한국어 설명으로 만든 남성 목소리가 여성처럼 나옴)
-HINTS_EN = {"calm": "calm and comfortable", "joy": "bright and excited, with a smile", "sad": "low and slow, sad",
+# 평온도 '생기 있게': 10/30 청취에서 남성 목소리가 나이 들고 늘어진다는 의견
+HINTS_EN = {"calm": "relaxed but lively, natural conversational pace", "joy": "bright and excited, with a smile", "sad": "low and slow, sad",
             "angry": "firm and strong, a little angry", "surprise": "surprised, higher and faster",
             "plead": "earnest and pleading", "tremor": "trembling voice, hesitant, words shaking at the end"}
 # 목소리 높이(Hz) 기준: 남성은 이보다 낮아야, 여성은 이보다 높아야 맞는 성별로 본다

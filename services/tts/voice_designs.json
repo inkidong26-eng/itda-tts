@@ -1,16 +1,16 @@
 [
-  {"id": "v10m1", "name": "새싹", "ageGroup": "10s", "gender": "m", "design": "A Korean teenage boy around 18 whose voice has just broken, clearly male, light but low-pitched male voice, bright and slightly fast, speaking natural Korean", "tags": ["맑음", "가벼움", "밝음"]},
+  {"id": "v10m1", "name": "새싹", "ageGroup": "10s", "gender": "m", "design": "A Korean high school boy around 18, clearly male, youthful and bright male voice, lively and energetic, speaks at a brisk natural pace, speaking natural Korean", "tags": ["맑음", "가벼움", "밝음"]},
   {"id": "v10f1", "name": "이슬", "ageGroup": "10s", "gender": "f", "design": "10대 후반 여학생, 맑고 높은 목소리, 생기 있고 또렷한 발음", "tags": ["맑음", "높음", "생기"]},
-  {"id": "v20m1", "name": "햇살", "ageGroup": "20s", "gender": "m", "design": "A Korean man in his mid 20s, clearly male, soft and clear mid-low male voice, friendly and natural, speaking natural Korean", "tags": ["부드러움", "또렷함", "친근함"]},
+  {"id": "v20m1", "name": "햇살", "ageGroup": "20s", "gender": "m", "design": "A Korean man in his mid 20s, clearly male, youthful clear male voice, bright, upbeat and lively, speaks at a brisk natural conversational pace, speaking natural Korean", "tags": ["부드러움", "또렷함", "친근함"]},
   {"id": "v20f1", "name": "봄볕", "ageGroup": "20s", "gender": "f", "design": "20대 중반 여성, 밝고 또렷한 목소리, 말이 약간 빠르고 경쾌함", "tags": ["밝음", "또렷함", "경쾌함"]},
-  {"id": "v30m1", "name": "바람", "ageGroup": "30s", "gender": "m", "design": "A Korean man in his 30s, clearly male, stable low-pitched baritone voice, calm and trustworthy, speaking natural Korean", "tags": ["중저음", "차분함", "신뢰"]},
+  {"id": "v30m1", "name": "바람", "ageGroup": "30s", "gender": "m", "design": "A Korean man in his early 30s, clearly male, clear mid-low male voice, confident and energetic, speaks at a brisk natural conversational pace, speaking natural Korean", "tags": ["중저음", "차분함", "신뢰"]},
   {"id": "v30f1", "name": "단비", "ageGroup": "30s", "gender": "f", "design": "30대 여성, 따뜻하고 부드러운 중간 톤, 차분한 속도", "tags": ["따뜻함", "부드러움", "차분함"]},
-  {"id": "v40m1", "name": "느티", "ageGroup": "40s", "gender": "m", "design": "A Korean man in his 40s, clearly male, deep heavy low-pitched voice, relaxed and comfortable pace, speaking natural Korean", "tags": ["묵직함", "편안함", "여유"]},
+  {"id": "v40m1", "name": "느티", "ageGroup": "40s", "gender": "m", "design": "A Korean man in his early 40s, clearly male, warm mid-low male voice, confident and energetic, natural conversational pace, not slow, speaking natural Korean", "tags": ["묵직함", "편안함", "여유"]},
   {"id": "v40f1", "name": "가람", "ageGroup": "40s", "gender": "f", "design": "40대 여성, 단정하고 또렷한 목소리, 다정하지만 힘 있는 말투", "tags": ["단정함", "다정함", "힘"]},
-  {"id": "v50m1", "name": "소나무", "ageGroup": "50s", "gender": "m", "design": "A Korean man in his 50s, clearly male, deep and slightly rough low-pitched voice, easygoing and warm, speaking natural Korean", "tags": ["깊음", "느긋함", "정감"]},
+  {"id": "v50m1", "name": "소나무", "ageGroup": "50s", "gender": "m", "design": "A Korean man in his 50s, clearly male, warm and slightly deep male voice, cheerful and lively, natural conversational pace, not slow, speaking natural Korean", "tags": ["깊음", "느긋함", "정감"]},
   {"id": "v50f1", "name": "노을", "ageGroup": "50s", "gender": "f", "design": "50대 여성, 따뜻하고 포근한 목소리, 약간 낮고 부드러움", "tags": ["포근함", "낮음", "부드러움"]},
-  {"id": "v60m1", "name": "너른들", "ageGroup": "60s", "gender": "m", "design": "A Korean man in his 60s, clearly male, low and slightly hoarse old male voice, speaking slowly and clearly, speaking natural Korean", "tags": ["낮음", "또박또박", "느림"]},
+  {"id": "v60m1", "name": "너른들", "ageGroup": "60s", "gender": "m", "design": "A Korean man in his 60s, clearly male, warm low male voice, still energetic and clear, natural conversational pace, not dragging, speaking natural Korean", "tags": ["낮음", "또박또박", "느림"]},
   {"id": "v60f1", "name": "물안개", "ageGroup": "60s", "gender": "f", "design": "60대 여성, 온화하고 약간 낮은 목소리, 천천히 다정하게 말함", "tags": ["온화함", "다정함", "느림"]},
-  {"id": "v70m1", "name": "큰산", "ageGroup": "70s", "gender": "m", "design": "An elderly Korean man in his 70s, clearly male, low hoarse old male voice with a slight tremble, slow and weighty, speaking natural Korean", "tags": ["낮음", "무게", "어르신"]},
+  {"id": "v70m1", "name": "큰산", "ageGroup": "70s", "gender": "m", "design": "A Korean man in his 70s, clearly male, warm low male voice, clear and steady, natural pace, not dragging, speaking natural Korean", "tags": ["낮음", "무게", "어르신"]},
   {"id": "v70f1", "name": "꽃자리", "ageGroup": "70s", "gender": "f", "design": "70대 여성 어르신, 부드럽고 가는 목소리에 약간의 떨림, 느리고 따뜻함", "tags": ["부드러움", "따뜻함", "어르신"]}
 ]
