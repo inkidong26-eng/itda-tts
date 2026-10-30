@@ -76,3 +76,11 @@ body {
 /* 굵은 글씨가 없는 글꼴(주아·고운돋움)은 억지로 굵게 만들면 뭉개지므로 끈다 */
 :root[data-font="jua"] body,
 :root[data-font="dodum"] body { font-synthesis: none; }
+
+/* 새로 들어온 상대 말: 한 번 반짝 (초당 3회 이하, 광과민 배려) */
+@keyframes itda-new-flash {
+  0%, 60% { background-color: #fff3c4; }
+  100% { background-color: #ffffff; }
+}
+.itda-new { animation: itda-new-flash 1.6s ease-out 1; }
+:root[data-dark] .itda-new { animation: none; }

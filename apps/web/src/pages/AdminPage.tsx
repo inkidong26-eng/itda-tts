@@ -47,6 +47,8 @@ export function AdminPage() {
   const ep = status?.endpoints[0];
   return (
     <Screen title="🛠️ GPU 연결 (관리자)">
+      {/* 사용자 화면과 헷갈리지 않게 관리자 화면 표시 */}
+      <div className="-mx-4 -mt-6 mb-2 bg-slate-800 px-4 py-2 text-center text-base font-bold text-white">🔒 관리자 전용 화면 · 일반 사용자는 쓰지 않아요</div>
       {!ok ? (
         <Card className="flex flex-col gap-3">
           <label className="flex flex-col gap-2">

@@ -39,6 +39,7 @@ export function MessageList({ messages, live, onRetry, bus, failText }: {
   failText?: string;        // 실패 문구 (통화: "상대 폰에서 소리가 나지 않았어요")
 }) {
   const end = useRef<HTMLDivElement>(null);
+  const openedAt = useRef(Date.now()); // 화면을 연 뒤 새로 들어온 상대 말만 반짝인다
   useEffect(() => {
     // 중괄호 필수: 최신 크롬의 scrollIntoView 는 Promise 를 돌려주는데, 그대로 돌려주면 React 가 정리 함수로 착각해 화면이 하얗게 멈춘다
     end.current?.scrollIntoView({ block: "end" });
@@ -64,7 +65,11 @@ export function MessageList({ messages, live, onRetry, bus, failText }: {
         const emo = m.emotion ? emotionInfo(m.emotion.emotion) : null;
         return (
           <div key={m.id} className={`flex flex-col ${m.role === "me" ? "items-end" : "items-start"}`}>
-            <p className={`max-w-[85%] rounded-2xl px-4 py-2 text-lg ${m.role === "me" ? "bg-navy text-white" : "bg-gray-100 text-ink"}`}
+            {/* 농인에게 중요한 건 상대(청인) 말: 크고 진하게. 내가 보낸 글은 작고 옅게 (10/30 사용자 의견) */}
+            {m.role === "other" && <span className="mb-1 text-sm font-semibold text-[#0e6582]">🗣️ 상대</span>}
+            <p className={m.role === "me"
+              ? "max-w-[80%] rounded-2xl bg-teal-50 px-3 py-2 text-base text-ink"
+              : `max-w-[94%] rounded-2xl border-2 border-[#0e6582] bg-white px-4 py-3 text-2xl font-semibold leading-snug text-ink shadow-sm ${m.at > openedAt.current ? "itda-new" : ""}`}
               style={emo ? { borderLeft: `8px solid ${emo.color}` } : undefined}>
               {emo && <span aria-label={`감정 ${emo.label}`} className="mr-1">{emo.icon}</span>}
               {m.text}
@@ -73,7 +78,7 @@ export function MessageList({ messages, live, onRetry, bus, failText }: {
             {m.alt && <p className="mt-1 max-w-[85%] text-base text-muted" aria-label={m.role === "me" ? "통역된 글" : "원문"}>🌐 {m.alt}</p>}
             {live[m.id] && <div className="mt-1 w-2/3"><SpeakingBar id={m.id} color={emo?.color ?? "#1A9A9A"} bus={bus} /></div>}
             {status && (
-              <p className={`mt-1 text-base ${TONE[status.tone]}`}>
+              <p className={`mt-1 ${status.tone === "warn" ? "text-base" : "text-sm"} ${TONE[status.tone]}`}>
                 {status.text}{status.sub && <span className="ml-1 text-xs font-normal text-gray-400">· {status.sub}</span>}
               </p>
             )}
