@@ -145,3 +145,46 @@ def test_health_hides_gpu_address(fast):
     use_gpu(fast, FakeGpu())
     body = fast.get("/health").text
     assert "fake-gpu" not in body
+
+
+def test_prefetch_while_typing_makes_send_instant(fast):
+    """쓰는 중 미리 만들기 → [보내기]는 GPU를 다시 부르지 않고 캐시로 바로 나온다"""
+    gpu = FakeGpu()
+    use_gpu(fast, gpu)
+    pre = fast.post("/tts/prefetch", json={"text": "OK 3시에 봐요", "voiceId": "v20f1"}, headers=auth(fast.token))
+    assert pre.json() == {"state": "started"}
+    for _ in range(50):
+        if fast.post("/tts/prefetch", json={"text": "OK 3시에 봐요", "voiceId": "v20f1"},
+                     headers=auth(fast.token)).json()["state"] == "cached":
+            break
+        time.sleep(0.02)
+    res = say(fast, fast.token).json()
+    assert res["cached"] is True and res["fallback"] is False
+    assert len(gpu.calls) == 1
+
+
+def test_prefetch_is_quiet_and_does_not_use_send_limit(make_client):
+    with make_client(TTS_KEY="k", TTS_LIMIT_PER_MIN="2", **FAST) as c:
+        token = signup(c)["token"]
+        for _ in range(5):  # GPU 꺼짐·잘못된 목소리도 오류 없이 조용히
+            assert c.post("/tts/prefetch", json={"text": "안녕하세요", "voiceId": "v20f1"}, headers=auth(token)).json() == {"state": "off"}
+        assert c.post("/tts/prefetch", json={"text": "안녕", "voiceId": "nope"}, headers=auth(token)).json() == {"state": "skip"}
+        assert say(c, token).status_code == 200 and say(c, token).status_code == 200  # 보내기 한도는 그대로
+
+
+def test_prefetch_skips_when_gpu_is_busy(tmp_path):
+    from tests.test_tts_service import make_service, payload
+
+    async def run():
+        gpu = FakeGpu(delay_s=0.5)
+        service, db, _ = await make_service(tmp_path, gpu, concurrency=1, start=0.3, total=2.0)
+        states = [await service.prefetch(k, payload(k)) for k in ("a", "b", "c", "d")]
+        await asyncio.sleep(0)
+        for t in list(service._inflight.values()):
+            t.cancel()
+        await service.pool.close()
+        await db.close()
+        return states
+
+    states = asyncio.run(run())
+    assert states[0] == "started" and "busy" in states

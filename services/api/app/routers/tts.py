@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.db import User
 from app.deps import client_ip, current_user
-from app.speech import SpeechError, speak_for_user
+from app.speech import SpeechError, prefetch_for_user, speak_for_user
 
 router = APIRouter()
 _background: set[asyncio.Task] = set()  # 기다리지 않는 작업이 중간에 사라지지 않게 붙잡아 둔다
@@ -33,6 +33,17 @@ async def tts(body: TtsIn, request: Request, user: User = Depends(current_user))
         return await speak_for_user(request.app, user.id, body.text, body.voiceId)
     except SpeechError as err:
         raise HTTPException(status_code=err.status, detail=err.message) from None
+
+
+class PrefetchIn(BaseModel):
+    text: str = Field(max_length=200)
+    voiceId: str
+
+
+@router.post("/tts/prefetch")
+async def prefetch(body: PrefetchIn, request: Request, user: User = Depends(current_user)) -> dict:
+    """글을 쓰는 중 미리 만들기 (기다리지 않고 바로 답함)"""
+    return {"state": await prefetch_for_user(request.app, user.id, body.text, body.voiceId)}
 
 
 @router.post("/tts/warmup")

@@ -106,6 +106,11 @@ export function speak(token: string, text: string, voiceId: string, emotion?: Em
   return request<TtsResult>("POST", "/tts", token, { text, voiceId, ...(emotion ? { emotion } : {}) });
 }
 
+/** 글을 쓰는 중 미리 만들기: [보내기]를 누르기 전에 목소리를 만들어 둔다. 실패해도 조용히 (보내기에는 영향 없음) */
+export function prefetch(token: string, text: string, voiceId: string): void {
+  request("POST", "/tts/prefetch", token, { text, voiceId }).catch(() => undefined);
+}
+
 /** 통역 (DeepL). 실패하면 화면은 원문으로 계속 */
 export function translate(token: string, text: string, source: string, target: string) {
   return request<{ text: string }>("POST", "/translate", token, { text, source, target });

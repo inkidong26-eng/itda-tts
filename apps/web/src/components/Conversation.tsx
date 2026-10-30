@@ -97,10 +97,12 @@ export function MessageList({ messages, live, onRetry, bus, failText }: {
 }
 
 const MAX = 100;
+const DRAFT_PAUSE_MS = 800; // 손을 멈추고 이만큼 지나면 미리 만들기 시작
 
 /** 입력칸 + 보내기 + 즐겨찾기 ⭐ */
-export function Composer({ onSend, recent, disabled }: {
+export function Composer({ onSend, onDraft, recent, disabled }: {
   onSend: (text: string, emotion: EmotionResult) => void;
+  onDraft?: (text: string) => void; // 쓰다 멈추면 부른다 (미리 만들기)
   recent: Turn[];
   disabled?: boolean;
 }) {
@@ -119,6 +121,22 @@ export function Composer({ onSend, recent, disabled }: {
     setFavOpen(false);
     setManual({}); // 보낸 뒤 자동 모드로
   };
+
+  // 쓰다가 잠깐 멈추면 지금 글로 목소리를 미리 만들어 둔다 → [보내기]를 누르면 바로 나온다
+  // (onDraft 는 ref 로: 상대 자막 등으로 화면이 다시 그려져도 기다리는 시간이 처음부터 다시 시작되지 않게)
+  const drafted = useRef("");
+  const draftFn = useRef(onDraft);
+  draftFn.current = onDraft;
+  useEffect(() => {
+    const t = text.trim();
+    if (disabled || t.length < 2 || t === drafted.current) return;
+    const timer = setTimeout(() => {
+      if (!draftFn.current) return;
+      drafted.current = t;
+      draftFn.current(t);
+    }, DRAFT_PAUSE_MS);
+    return () => clearTimeout(timer);
+  }, [text, disabled]);
 
   // 글이 길어지면 3줄까지 늘어나는 칸
   const box = useRef<HTMLTextAreaElement>(null);

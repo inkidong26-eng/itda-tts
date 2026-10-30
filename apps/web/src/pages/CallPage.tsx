@@ -1,5 +1,6 @@
 // S7 전화로 대화 — 링크 방식 (02 문서). 링크 만들기 → QR·공유 → 기다리기 → 연결됨 → 대화.
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { prefetch } from "../api/client";
 import { useDeafCall } from "../call/useDeafCall";
 import { Composer, MessageList } from "../components/Conversation";
 import { EdgeGlow } from "../components/Feedback";
@@ -128,7 +129,8 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
       <p className="min-h-[1.5em] text-base text-muted" aria-live="polite">
         {call.hearingSpeaking || call.interim ? `🎤 상대가 말하는 중${call.interim ? `: ${call.interim}` : ""}` : ""}
       </p>
-      <Composer recent={recent} onSend={(t, e) => call.send(t, e)} />
+      <Composer recent={recent} onSend={(t, e) => call.send(t, e)}
+        onDraft={session.voiceId ? (t) => prefetch(session.token, t, session.voiceId!) : undefined} />
     </main>
   );
 }

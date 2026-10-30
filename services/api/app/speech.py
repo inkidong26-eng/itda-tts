@@ -18,11 +18,8 @@ class SpeechError(Exception):
         self.message = message
 
 
-async def speak_for_user(app: FastAPI, user_id: str, text: str, voice_id: str | None) -> dict:
-    """{url, durationMs, cached, fallback, displayText}. 입력이 잘못되면 SpeechError."""
-    started = time.perf_counter()
-    if not app.state.limiter.allow(f"tts:{user_id}", app.state.settings.tts_limit_per_min):
-        raise SpeechError(429, "잠시 후 다시 보내 주세요")
+async def _prepare(app: FastAPI, text: str, voice_id: str | None) -> tuple[str, dict, str]:
+    """검사·읽기 변환·캐시 키 (보내기와 미리 만들기가 같은 키를 쓰도록 한 곳에서)."""
     text = text.strip()
     if not text:
         raise SpeechError(400, "보낼 글을 적어 주세요")
@@ -33,14 +30,36 @@ async def speak_for_user(app: FastAPI, user_id: str, text: str, voice_id: str | 
     spoken = normalize(text)
     if not spoken:
         raise SpeechError(400, "읽을 글자가 없어요")
-
     # 감정·속도 반영은 T13 → 지금은 모두 평온·보통 속도로 만들고, 캐시 키도 같게 맞춘다
     emotion, intensity, tremor, speed = "calm", 2, 0, 1.0
     key = cache_key(app.state.settings.app_secret, voice_id, emotion, intensity, tremor, speed, spoken)
     payload = {"voiceId": voice_id, "emotion": emotion, "intensity": intensity, "tremor": tremor,
                "text": spoken, "seed": 1}
+    return key, payload, spoken
+
+
+async def speak_for_user(app: FastAPI, user_id: str, text: str, voice_id: str | None) -> dict:
+    """{url, durationMs, cached, fallback, displayText}. 입력이 잘못되면 SpeechError."""
+    started = time.perf_counter()
+    if not app.state.limiter.allow(f"tts:{user_id}", app.state.settings.tts_limit_per_min):
+        raise SpeechError(429, "잠시 후 다시 보내 주세요")
+    key, payload, spoken = await _prepare(app, text, voice_id)
     result = await app.state.tts.speak(key, payload, spoken)
 
     ms = int((time.perf_counter() - started) * 1000)
     await app.state.db.add_event("tts_cached" if result["cached"] else "tts", ms, result["fallback"])
     return result
+
+
+PREFETCH_LIMIT_PER_MIN = 40
+
+
+async def prefetch_for_user(app: FastAPI, user_id: str, text: str, voice_id: str | None) -> str:
+    """글을 쓰는 중 미리 만들기. 실패해도 조용히 (보내기에는 영향 없음)."""
+    if not app.state.limiter.allow(f"pre:{user_id}", PREFETCH_LIMIT_PER_MIN):
+        return "limited"
+    try:
+        key, payload, _ = await _prepare(app, text, voice_id)
+    except SpeechError:
+        return "skip"
+    return await app.state.tts.prefetch(key, payload)

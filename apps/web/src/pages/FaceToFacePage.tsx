@@ -1,7 +1,7 @@
 // S6 마주보고 대화 (02 문서). 위쪽은 180° 뒤집어 맞은편 청인이 읽고, 아래쪽은 농인이 쓴다.
 // 약속: 보낸 글은 어떤 오류에서도 소리로 나간다 (서버가 안 되면 폰 기본 음성).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, speak, translate, type TtsResult } from "../api/client";
+import { ApiError, prefetch, speak, translate, type TtsResult } from "../api/client";
 import { type PlayerEvent, player, unlockAudio } from "../audio/player";
 import { Composer, type Live, MessageList } from "../components/Conversation";
 import { EdgeGlow, HighlightText } from "../components/Feedback";
@@ -266,7 +266,8 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
             )}
           </>
         )}
-        <Composer recent={recent} onSend={(t, e) => send(t, e)} />
+        <Composer recent={recent} onSend={(t, e) => send(t, e)}
+          onDraft={!foreign && session.voiceId ? (t) => prefetch(session.token, t, session.voiceId!) : undefined} />
       </section>
     </main>
   );

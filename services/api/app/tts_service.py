@@ -38,11 +38,7 @@ class TtsService:
         if self.pool.state != "ready":
             return self._fallback(display_text)
 
-        task = self._inflight.get(key)
-        if task is None:
-            task = asyncio.create_task(self._generate(key, payload))
-            self._inflight[key] = task
-            task.add_done_callback(lambda t, k=key: self._finished(k, t))
+        task = self._start(key, payload)
 
         remaining = self.total_timeout_s - (time.perf_counter() - started)
         try:
@@ -51,6 +47,28 @@ class TtsService:
         except (asyncio.TimeoutError, QueueTimeout, NoServer, httpx.HTTPError, OSError):
             return self._fallback(display_text)
         return self._ok(name, duration, cached=False, display_text=display_text)
+
+    def _start(self, key: str, payload: dict) -> asyncio.Task:
+        task = self._inflight.get(key)
+        if task is None:
+            task = asyncio.create_task(self._generate(key, payload))
+            self._inflight[key] = task
+            task.add_done_callback(lambda t, k=key: self._finished(k, t))
+        return task
+
+    async def prefetch(self, key: str, payload: dict) -> str:
+        """글을 쓰는 중에 미리 만들기 (기다리지 않음). 보내기를 누르면 같은 키라 캐시나 진행 중인 작업을 그대로 쓴다.
+        GPU가 바쁘면 하지 않는다: 실제 보내기가 미리 만들기 뒤에 줄 서지 않게."""
+        if await self.cache.lookup(key):
+            return "cached"
+        if self.pool.state != "ready":
+            return "off"
+        if key in self._inflight:
+            return "started"
+        if self.pool.queue_len() >= max(1, self.pool.concurrency - 1):  # 한 자리는 실제 보내기용으로 비워 둔다
+            return "busy"
+        self._start(key, payload)
+        return "started"
 
     async def _generate(self, key: str, payload: dict) -> tuple[str, int]:
         started = time.perf_counter()
