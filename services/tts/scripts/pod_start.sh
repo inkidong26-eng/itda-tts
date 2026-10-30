@@ -5,8 +5,17 @@
 # 필요한 것 (템플릿 환경 변수): TTS_KEY={{ RUNPOD_SECRET_ITDA_TTS_KEY }}
 # 저장 공간(Network Volume)을 /workspace 에 붙이면 프로그램·모델·목소리를 다시 받지 않는다.
 # 기록: /workspace/pod_start.log (Jupyter 에서 볼 수 있음)
+# 다시 켜질 때 저장 공간(/workspace)이 늦게 붙는 경우가 있어 붙을 때까지 기다린다 (최대 5분, 10/30 발견)
+for i in $(seq 1 60); do
+  mountpoint -q /workspace 2>/dev/null && break
+  [ -d /workspace/itda-tts ] && break
+  sleep 5
+done
 exec >> /workspace/pod_start.log 2>&1
 echo "=== $(date) pod_start ==="
+# 이미 하나가 돌고 있으면 또 켜지 않는다 (손으로 한 번 더 실행해도 안전)
+exec 9> /tmp/itda_pod_start.lock
+flock -n 9 || { echo "이미 실행 중이라 끝냄"; exit 0; }
 set -u
 W=/workspace
 export HF_HOME=$W/hf                       # 모델 파일 보관 (다음부터 안 받음)
