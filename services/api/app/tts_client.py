@@ -34,6 +34,7 @@ class Endpoint:
 class TtsPool:
     def __init__(self, urls: list[str], key: str, concurrency: int, request_timeout_s: float,
                  transport: httpx.AsyncBaseTransport | None = None) -> None:
+        self.concurrency = concurrency
         self.endpoints = [Endpoint(u, concurrency) for u in urls]
         self.key = key
         self.request_timeout_s = request_timeout_s
@@ -42,8 +43,17 @@ class TtsPool:
         self._last_warmup = 0.0
 
     async def start(self) -> None:
-        if self.endpoints:
-            self._health_task = asyncio.create_task(self._health_loop())
+        # 주소가 없어도 확인은 돈다: 관리자 화면에서 나중에 GPU 주소를 넣을 수 있다
+        self._health_task = asyncio.create_task(self._health_loop())
+
+    def set_urls(self, urls: list[str]) -> None:
+        """GPU 주소 바꾸기 (관리자 화면). 새 서버는 확인 전까지 쓰지 않는다 (켜지는 중일 수 있음)"""
+        fresh = []
+        for url in urls:
+            ep = Endpoint(url, self.concurrency)
+            ep.healthy = False
+            fresh.append(ep)
+        self.endpoints = fresh
 
     async def close(self) -> None:
         if self._health_task:

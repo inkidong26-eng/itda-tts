@@ -27,6 +27,7 @@ class Settings:
     deepl_key: str = ""            # 외국어 통역 (비어 있으면 통역 꺼짐)
     deepl_url: str = "https://api-free.deepl.com/v2/translate"
     translate_limit_per_min: int = 30
+    admin_password: str = ""       # 관리자 화면 (비어 있으면 관리자 화면 꺼짐)
     cache_hours: int = 24
     tts_request_timeout_s: float = 30
     token_days: int = 30
@@ -57,4 +58,5 @@ def load_settings() -> Settings:
         deepl_key=os.getenv("DEEPL_KEY", "").strip(),
         deepl_url=os.getenv("DEEPL_URL", "https://api-free.deepl.com/v2/translate"),
         translate_limit_per_min=int(os.getenv("TRANSLATE_LIMIT_PER_MIN", "30")),
+        admin_password=os.getenv("ADMIN_PASSWORD", ""),
     )

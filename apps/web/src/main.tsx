@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { AdminPage } from "./pages/AdminPage";
 import { DevAudioPage } from "./pages/DevAudioPage";
 import { ReceivePage } from "./pages/ReceivePage";
 
@@ -16,6 +17,7 @@ applyAppearance(loadView());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {callMatch ? <ReceivePage callId={callMatch[1]} /> : window.location.pathname.startsWith("/dev/audio") ? <DevAudioPage /> : <App />}
+    {callMatch ? <ReceivePage callId={callMatch[1]} /> : window.location.pathname.startsWith("/dev/audio") ? <DevAudioPage />
+      : window.location.pathname.startsWith("/admin") ? <AdminPage /> : <App />}
   </StrictMode>,
 );
