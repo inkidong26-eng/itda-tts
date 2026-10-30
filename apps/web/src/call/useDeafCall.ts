@@ -11,7 +11,7 @@ import { history, type Message } from "../storage/history";
 import type { Session } from "../storage/local";
 import { CallConnection, type CallMessage, type ConnState, wsUrl } from "./connection";
 
-export const PLAY_START_LIMIT_MS = 9000; // 서버 목소리 최대 7초 + 받기·재생 시작
+export const PLAY_START_LIMIT_MS = 5000;
 const CONNECTED = [60, 80, 60, 80, 60];
 const DISCONNECTED = [300, 150, 300];
 
