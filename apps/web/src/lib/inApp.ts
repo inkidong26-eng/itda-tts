@@ -20,3 +20,11 @@ export function externalUrl(kind: InApp, url: string, ua: string): string | null
   }
   return null; // 아이폰의 다른 앱은 넘길 방법이 없어 안내만
 }
+
+/** 안드로이드 앱 안 브라우저는 크롬으로 저절로 넘긴다 (10/30 실제 폰: 카톡 안에서는 말할 때마다 마이크 허용을 다시 묻는다).
+ * 아이폰 카톡은 문제없어 그대로 둔다. "여기서 계속" 을 고르면 이 창에서는 다시 넘기지 않는다. */
+export function autoLeaveUrl(ua: string, url: string, stayed: boolean): string | null {
+  const kind = detectInApp(ua);
+  if (!kind || stayed || !/Android/i.test(ua)) return null;
+  return externalUrl(kind, url, ua);
+}
