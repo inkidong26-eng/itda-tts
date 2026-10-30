@@ -85,13 +85,15 @@ class FakeEngine:
     def unload(self, name: str) -> None:
         pass
 
-    def _wav(self, text: str) -> np.ndarray:
+    def _wav(self, text: str, hz: float = 220) -> np.ndarray:
         sr = 24000
         t = np.arange(int(sr * (0.3 + 0.08 * len(text)))) / sr
-        return (0.2 * np.sin(2 * np.pi * 220 * t)).astype(np.float32)
+        return (0.2 * np.sin(2 * np.pi * hz * t)).astype(np.float32)
 
     def design(self, texts, instructs, seed, **gen):
-        return [self._wav(t) for t in texts], 24000
+        # 남성 설명(영어)이면 낮은 소리로 흉내 낸다 (성별 확인 시험용)
+        hz = 120 if any(w in instructs[0] for w in (" man ", "boy", "male")) else 220
+        return [self._wav(t, hz) for t in texts], 24000
 
     def prompt(self, wav, sr, ref_text, model="base17"):
         return [object()]

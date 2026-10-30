@@ -32,6 +32,33 @@ from spike_data import EMOTIONS  # noqa: E402
 DESIGNS = Path(__file__).resolve().parent.parent / "voice_designs.json"
 PREVIEW = "안녕하세요, 저는 {name}이에요. 만나서 반가워요."
 MARKS = ["좋음", "숨소리", "다른사람", "어색"]
+# 설계 설명이 영어인 목소리는 감정 지시도 영어로 (10/30: 한국어 설명으로 만든 남성 목소리가 여성처럼 나옴)
+HINTS_EN = {"calm": "calm and comfortable", "joy": "bright and excited, with a smile", "sad": "low and slow, sad",
+            "angry": "firm and strong, a little angry", "surprise": "surprised, higher and faster",
+            "plead": "earnest and pleading", "tremor": "trembling voice, hesitant, words shaking at the end"}
+# 목소리 높이(Hz) 기준: 남성은 이보다 낮아야, 여성은 이보다 높아야 맞는 성별로 본다
+MALE_MAX_HZ, FEMALE_MIN_HZ = 170, 165
+
+
+def pitch_hz(wav: np.ndarray, sr: int) -> float:
+    """말하는 부분의 목소리 높이 중앙값 (자기상관). 0 이면 측정 실패."""
+    fr, hop, found = int(sr * 0.04), int(sr * 0.01), []
+    lo, hi = int(sr / 400), int(sr / 65)
+    for i in range(0, len(wav) - fr, hop):
+        x = wav[i:i + fr] - wav[i:i + fr].mean()
+        if np.sqrt((x ** 2).mean()) < 0.02:
+            continue
+        c = np.correlate(x, x, "full")[fr - 1:]
+        k = lo + int(np.argmax(c[lo:hi]))
+        if c[k] > 0.3 * c[0]:
+            found.append(sr / k)
+    return float(np.median(found)) if found else 0.0
+
+
+def gender_ok(voice: dict, hz: float) -> bool:
+    if hz <= 0:
+        return True
+    return hz <= MALE_MAX_HZ if voice["gender"] == "m" else hz >= FEMALE_MIN_HZ
 
 
 def log(msg: str) -> None:
@@ -71,6 +98,8 @@ def design_candidates(engine, voice: dict, out: Path, seed: int, candidates: int
         if all((cdir / f"{code}_{i + 1}.wav").exists() for i in range(candidates)):
             continue
         t0 = time.time()
+        if voice["design"].isascii():
+            hint = HINTS_EN[code]
         wavs, sr = engine.design([ref_text] * candidates, [f"{voice['design']}. {hint}"] * candidates, seed)
         for i, w in enumerate(wavs):
             # 앞 숨소리·잡음 자르기 (10/24 청취: 기준음성 43% 숨소리)
@@ -92,13 +121,19 @@ def pick_and_finish(engine, voice: dict, out: Path, seed: int, candidates: int) 
             scores = [float(np.mean([cosine(e, o) for o in embeds])) for e in embeds]
         else:
             scores = [cosine(e, calm_embed) for e in embeds]
-        best = int(np.argmax(scores))
+        pitches = [round(pitch_hz(w, sr)) for w in wavs]
+        # 성별이 맞는 후보만 고른다. 평온(기준)은 반드시 맞아야 하고, 하나도 없으면 실패로 알린다
+        ok = [i for i in range(len(wavs)) if gender_ok(voice, pitches[i])]
+        if calm_embed is None and not ok:
+            raise RuntimeError(f"성별에 맞는 평온 후보가 없어요 (높이 {pitches}Hz) → --seed 를 바꿔 다시")
+        pool = ok or list(range(len(wavs)))
+        best = max(pool, key=lambda i: scores[i])
         shutil.copyfile(vdir / "cand" / f"{code}_{best + 1}.wav", vdir / f"{code}.wav")
         if calm_embed is None:
             calm_embed = embeds[best]
             calm = (wavs[best], sr, ref_text)
         meta["emotions"][code] = {"label": label, "text": ref_text, "pick": best + 1,
-                                  "scores": [round(s, 3) for s in scores]}
+                                  "scores": [round(s, 3) for s in scores], "pitchHz": pitches}
     write_preview(engine, voice, vdir, *calm, seed)
     (vdir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     return meta
@@ -175,7 +210,7 @@ def write_review(out: Path) -> Path:
                 marks = "".join(f"<label><input type=checkbox data-k='{m}'>{m}</label> " for m in MARKS)
                 cells.append(
                     f"<td data-id='{vid}_{code}_{i}'><label><input type=radio name='{vid}_{code}' value='{i}'{checked}"
-                    f" data-auto='{e['pick']}'> 후보 {i}</label> <small>점수 {e['scores'][i - 1]}</small><br>"
+                    f" data-auto='{e['pick']}'> 후보 {i}</label> <small>점수 {e['scores'][i - 1]} · 높이 {e.get('pitchHz', [0] * 9)[i - 1]}Hz</small><br>"
                     f"<audio controls preload=none src='{to_data_uri(w, sr)}'></audio><br>{marks}</td>"
                 )
             rows.append(f"<tr><th>{e['label']}<br><small>{e['text']}</small></th>{''.join(cells)}</tr>")
