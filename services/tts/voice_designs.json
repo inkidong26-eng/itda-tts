@@ -1,5 +1,5 @@
 [
-  {"id": "v10m1", "name": "새싹", "ageGroup": "10s", "gender": "m", "design": "A Korean young man around 19, clearly male, adult male voice that has fully broken, mid-low pitch, lively and energetic, speaks at a brisk natural pace, speaking natural Korean", "tags": ["맑음", "가벼움", "밝음"]},
+  {"id": "v10m1", "name": "새싹", "ageGroup": "10s", "gender": "m", "design": "A Korean young man around 20, clearly male, low-pitched adult male voice, youthful tone, lively and energetic, speaks at a brisk natural pace, speaking natural Korean", "tags": ["맑음", "가벼움", "밝음"]},
   {"id": "v10f1", "name": "이슬", "ageGroup": "10s", "gender": "f", "design": "10대 후반 여학생, 맑고 높은 목소리, 생기 있고 또렷한 발음", "tags": ["맑음", "높음", "생기"]},
   {"id": "v20m1", "name": "햇살", "ageGroup": "20s", "gender": "m", "design": "A Korean man in his mid 20s, clearly male, youthful clear male voice, bright, upbeat and lively, speaks at a brisk natural conversational pace, speaking natural Korean", "tags": ["부드러움", "또렷함", "친근함"]},
   {"id": "v20f1", "name": "봄볕", "ageGroup": "20s", "gender": "f", "design": "20대 중반 여성, 밝고 또렷한 목소리, 말이 약간 빠르고 경쾌함", "tags": ["밝음", "또렷함", "경쾌함"]},
