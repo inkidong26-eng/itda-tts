@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # RunPod 에서 GPU 가 켜지면 저절로 음성 서버를 띄운다 (폰에서 켜기, 10/30).
 # 템플릿 시작 명령:
-#   bash -c "curl -fsSL https://raw.githubusercontent.com/inkidong26-eng/itda-tts/main/services/tts/scripts/pod_start.sh | bash & /start.sh"
+#   bash -c "(until curl -fsSL https://raw.githubusercontent.com/inkidong26-eng/itda-tts/main/services/tts/scripts/pod_start.sh -o /tmp/pod_start.sh; do sleep 5; done; bash /tmp/pod_start.sh) & /start.sh"
+#   (켜지는 순간 인터넷이 아직 안 될 때가 있어 받을 때까지 다시 시도한다, 10/31 발견)
+# 템플릿 환경 변수에 JUPYTER_PASSWORD={{ RUNPOD_SECRET_ITDA_TTS_KEY }} 도 넣는다 (없으면 Jupyter 가 안 켜짐)
 # 필요한 것 (템플릿 환경 변수): TTS_KEY={{ RUNPOD_SECRET_ITDA_TTS_KEY }}
 # 저장 공간(Network Volume)을 /workspace 에 붙이면 프로그램·모델·목소리를 다시 받지 않는다.
 # 기록: /workspace/pod_start.log (Jupyter 에서 볼 수 있음)
