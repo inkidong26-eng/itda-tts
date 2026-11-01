@@ -14,6 +14,7 @@ import { hasTranslateConsent, langInfo, LANGUAGES, type LangCode, saveTranslateC
 import { createOrdered } from "../lib/ordered";
 import { speechText } from "../lib/speechText";
 import { useCaptions } from "../stt/useCaptions";
+import { type LastCaption, mergeCaption } from "../lib/captionMerge";
 import { history, type Message } from "../storage/history";
 import type { Session } from "../storage/local";
 import { FONT_STEPS, type FontStep, type ViewSettings } from "../storage/settings";
@@ -89,10 +90,21 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
     void history.put(next);
     return next;
   }));
+  const lastCaption = useRef<LastCaption | null>(null); // 이어지는 자막 합치기 (안드로이드는 중간 결과를 여러 번 확정으로 보냄)
   const captions = useCaptions((text) => {
-    const message: Message = { id: newId(), role: "other", text, at: Date.now() };
-    setMessages((list) => [...list, message]);
-    void history.put(message);
+    const now = Date.now();
+    const how = mergeCaption(lastCaption.current, text, now);
+    if (how === "drop") { lastCaption.current!.at = now; return; }
+    let message: Message;
+    if (how === "replace") {
+      message = { id: lastCaption.current!.id, role: "other", text, at: now };
+      update(message.id, { text, alt: undefined });
+    } else {
+      message = { id: newId(), role: "other", text, at: now };
+      setMessages((list) => [...list, message]);
+      void history.put(message);
+    }
+    lastCaption.current = { id: message.id, text, at: now };
     if (!foreignRef.current) return;
     // 통역: 상대 말(외국어) → 한국어. 안 되면 원문 그대로 둔다
     const from = foreignRef.current;
@@ -111,6 +123,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
   };
 
   const send = (text: string, emotion?: EmotionResult, existing?: Message) => {
+    lastCaption.current = null; // 내가 말한 뒤의 상대 말은 새 말풍선
     unlockAudio(); // 보내기 터치 안에서 소리 장치를 깨운다 (아이폰)
     if (!speechText(text)) {
       setProblem("empty"); // 이모지·ㅠㅠ만 있으면 읽을 글자가 없다

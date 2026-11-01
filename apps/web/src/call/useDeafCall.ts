@@ -7,6 +7,7 @@ import type { Live } from "../components/Conversation";
 import type { EmotionResult } from "../emotion/types";
 import { createBus } from "../feedback/bus";
 import { vibrate } from "../feedback/vibrate";
+import { type LastCaption, mergeCaption } from "../lib/captionMerge";
 import { history, type Message } from "../storage/history";
 import type { Session } from "../storage/local";
 import { CallConnection, type CallMessage, type ConnState, wsUrl } from "./connection";
@@ -39,6 +40,7 @@ export function useDeafCall(session: Session) {
   const fallbackOf = useRef(new Map<string, boolean>());
   const startTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const retries = useRef(new Map<string, number>());
+  const lastCaption = useRef<LastCaption | null>(null); // 이어지는 자막 합치기
 
   const patchLive = useCallback((id: string, patch: Partial<Live>) => {
     setLive((cur) => ({ ...cur, [id]: { ...(cur[id] ?? { state: "sending", fallback: false, silent: false }), ...patch } }));
@@ -127,10 +129,26 @@ export function useDeafCall(session: Session) {
       case "caption":
         if (typeof m.text !== "string") return;
         if (m.final) {
-          const caption: Message = { id: newId(), role: "other", text: m.text, at: Date.now() };
+          const now = Date.now();
+          const how = mergeCaption(lastCaption.current, m.text, now);
+          setInterim("");
+          if (how === "drop") { lastCaption.current!.at = now; return; }
+          if (how === "replace") {
+            const id = lastCaption.current!.id;
+            const text = m.text;
+            lastCaption.current = { id, text, at: now };
+            setMessages((list) => list.map((x) => {
+              if (x.id !== id) return x;
+              const next = { ...x, text };
+              void history.put(next);
+              return next;
+            }));
+            return;
+          }
+          const caption: Message = { id: newId(), role: "other", text: m.text, at: now };
+          lastCaption.current = { id: caption.id, text: m.text, at: now };
           setMessages((list) => [...list, caption]);
           void history.put(caption);
-          setInterim("");
           vibrate([30]); // 청인 자막 도착: 아주 짧게 1회
         } else {
           setInterim(m.text);
@@ -172,6 +190,7 @@ export function useDeafCall(session: Session) {
   const send = useCallback((text: string, emotion?: EmotionResult, existing?: Message) => {
     const chosen = emotion ? { emotion: emotion.emotion, intensity: emotion.intensity, tremor: emotion.tremor } : existing?.emotion;
     const message: Message = existing ?? { id: newId(), role: "me", text, at: Date.now(), emotion: chosen };
+    lastCaption.current = null; // 내가 말한 뒤의 상대 말은 새 말풍선
     const tries = (retries.current.get(message.id) ?? 0) + 1;
     retries.current.set(message.id, tries);
     const msgId = tries === 1 ? message.id : `${message.id}~${tries}`;
