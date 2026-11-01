@@ -65,6 +65,7 @@ export class Recognizer {
   private pending = "";      // 아직 확정 안 한 말
   private sent = "";         // 마지막으로 확정해 보낸 말 (같은 말을 곧바로 다시 보내지 않기)
   private sentAt = 0;
+  private retries = 0;
   private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private h: SttHandlers, private lang = "ko-KR") {}
@@ -114,7 +115,11 @@ export class Recognizer {
       rec.continuous = this.mode === "auto";
       rec.interimResults = true;
       this.done = 0;
+      // 빨리 다시 누르면 앞 마이크의 늦은 신호가 새 마이크를 건드리지 않게 (11/1: 늦은 '끝' 신호가 새 마이크를 잃어버려
+      // 손을 떼도 안 꺼지고, 다음 누름에서 '이미 듣는 중' 오류 → 마이크 버튼이 사라짐)
+      const stale = () => this.rec !== null && this.rec !== rec;
       rec.onresult = (e) => {
+        if (stale()) return;
         const pieces: string[] = [];
         for (let i = this.done; i < e.results.length; i++) pieces.push(e.results[i][0]?.transcript ?? "");
         const text = joinPieces(pieces);
@@ -128,9 +133,10 @@ export class Recognizer {
         const upto = e.results.length;
         this.timer = setTimeout(() => this.flush(upto), PAUSE_FINAL_MS);
       };
-      rec.onspeechstart = () => this.h.onSpeaking?.(true);
-      rec.onspeechend = () => this.h.onSpeaking?.(false);
+      rec.onspeechstart = () => { if (!stale()) this.h.onSpeaking?.(true); };
+      rec.onspeechend = () => { if (!stale()) this.h.onSpeaking?.(false); };
       rec.onerror = (e) => {
+        if (stale()) return;
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           this.mode = "off";
           this.h.onError?.("denied");
@@ -139,6 +145,10 @@ export class Recognizer {
         }
       };
       rec.onend = () => {
+        if (this.rec !== rec) {
+          if (this.rec === null) this.flush(); // 우리가 멈춘 뒤 늦게 온 마지막 말은 보낸다
+          return; // 새 마이크가 이미 켜졌으면 건드리지 않는다
+        }
         this.flush();
         this.running = false;
         this.rec = null;
@@ -149,8 +159,17 @@ export class Recognizer {
       this.rec = rec;
       this.running = true;
       rec.start();
+      this.retries = 0;
     } catch {
       this.running = false;
+      this.rec = null;
+      // 앞 마이크가 아직 꺼지는 중이면 켜기가 실패한다 → 포기하지 않고 잠깐 뒤 다시 (3번까지)
+      if (this.retries < 3) {
+        this.retries++;
+        setTimeout(() => { if (this.mode !== "off" && !this.paused) this.begin(); }, 300);
+        return;
+      }
+      this.retries = 0;
       this.h.onError?.("other");
     }
   }

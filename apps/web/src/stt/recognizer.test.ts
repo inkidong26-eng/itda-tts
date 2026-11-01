@@ -50,3 +50,41 @@ describe("말의 흐름을 기다려 한 문장으로", () => {
     expect(got.filter(([, f]) => f)).toEqual([["네 알겠어요", true]]);
   });
 });
+
+describe("빨리 다시 누르기", () => {
+  it("앞 마이크의 늦은 '끝' 신호가 새 마이크를 끊지 않는다", () => {
+    const made: { stopped: boolean; onend: (() => void) | null; onresult: ((e: Ev) => void) | null }[] = [];
+    class Slow { lang = ""; continuous = false; interimResults = false; onresult = null; onerror = null; onend = null; onspeechstart = null; onspeechend = null;
+      stopped = false; constructor() { made.push(this as never); } start() {} stop() { this.stopped = true; } abort() {} }
+    vi.stubGlobal("window", { SpeechRecognition: Slow });
+    const got: [string, boolean][] = [];
+    const r = new Recognizer({ onText: (t, f) => got.push([t, f]) });
+    r.startHold(); made[0].onresult!(res("하나")); r.stop();   // 첫 번째 누름·뗌 (끝 신호는 아직)
+    r.startHold();                                            // 바로 다시 누름
+    made[0].onend!();                                         // 이제야 앞 마이크 끝 신호
+    expect(r.listening).toBe(true);                           // 새 마이크는 그대로
+    made[1].onresult!(res("둘"));
+    r.stop();
+    expect(made[1].stopped).toBe(true);                       // 손을 떼면 새 마이크가 꺼진다
+    expect(got.filter(([, f]) => f).map(([t]) => t)).toEqual(["하나", "둘"]);
+  });
+});
+
+describe("켜기 실패", () => {
+  it("앞 마이크가 꺼지는 중이라 실패하면 잠깐 뒤 다시 켜고, 오류로 마이크를 없애지 않는다", () => {
+    vi.useFakeTimers();
+    let busy = true;
+    class Busy { lang = ""; continuous = false; interimResults = false; onresult = null; onerror = null; onend = null; onspeechstart = null; onspeechend = null;
+      start() { if (busy) throw new Error("InvalidStateError"); } stop() {} abort() {} }
+    vi.stubGlobal("window", { SpeechRecognition: Busy });
+    const errors: string[] = [];
+    const r = new Recognizer({ onText: () => {}, onError: (k) => errors.push(k) });
+    r.startHold();
+    expect(r.listening).toBe(false);
+    busy = false;
+    vi.advanceTimersByTime(300);
+    expect(r.listening).toBe(true);
+    expect(errors).toEqual([]);
+    r.stop();
+  });
+});
