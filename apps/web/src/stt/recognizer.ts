@@ -17,6 +17,26 @@ type Rec = {
   onspeechend: (() => void) | null;
 };
 
+// 말이 이만큼 멈추면 한 문장으로 확정해 보낸다 (11/1 실제 통화: 천천히 말하면 "얼마나"/"얼마나 천천히"/... 가
+// 따로 확정돼 말풍선이 여러 개 생김). 그 전에는 '말하는 중' 글로만 보여 준다.
+export const PAUSE_FINAL_MS = 1500;
+
+const squash = (t: string) => t.replace(/[\s.,!?~…"'·]/g, "");
+
+/** 한 번 듣는 동안의 결과 조각을 한 문장으로. 안드로이드는 조각마다 '지금까지 전부'를 다시 보내므로 겹치면 긴 쪽만 남긴다 */
+export function joinPieces(pieces: string[]): string {
+  const out: string[] = [];
+  for (const raw of pieces) {
+    const t = raw.trim();
+    if (!t) continue;
+    const prev = out[out.length - 1];
+    if (prev !== undefined && squash(t).startsWith(squash(prev))) out[out.length - 1] = t;
+    else if (prev !== undefined && squash(prev).startsWith(squash(t))) continue;
+    else out.push(t);
+  }
+  return out.join(" ");
+}
+
 export type SttHandlers = {
   onText: (text: string, final: boolean) => void;
   onSpeaking?: (active: boolean) => void;
@@ -41,6 +61,11 @@ export class Recognizer {
   private mode: "off" | "auto" | "hold" = "off";
   private paused = false;
   private running = false;
+  private done = 0;          // 이번 듣기에서 이미 확정해 보낸 결과 수
+  private pending = "";      // 아직 확정 안 한 말
+  private sent = "";         // 마지막으로 확정해 보낸 말 (같은 말을 곧바로 다시 보내지 않기)
+  private sentAt = 0;
+  private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private h: SttHandlers, private lang = "ko-KR") {}
 
@@ -88,12 +113,20 @@ export class Recognizer {
       rec.lang = this.lang; // 통역: 상대 언어로 듣는다
       rec.continuous = this.mode === "auto";
       rec.interimResults = true;
+      this.done = 0;
       rec.onresult = (e) => {
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const r = e.results[i];
-          const text = r[0]?.transcript?.trim();
-          if (text) this.h.onText(text, r.isFinal);
+        const pieces: string[] = [];
+        for (let i = this.done; i < e.results.length; i++) pieces.push(e.results[i][0]?.transcript ?? "");
+        const text = joinPieces(pieces);
+        if (!text) return;
+        if (text !== this.pending) {
+          this.pending = text;
+          this.h.onText(text, false);
         }
+        // 말이 멈출 때까지 기다렸다가 한 문장으로 확정 (같은 글이 다시 와도 아직 말하는 중으로 본다)
+        clearTimeout(this.timer);
+        const upto = e.results.length;
+        this.timer = setTimeout(() => this.flush(upto), PAUSE_FINAL_MS);
       };
       rec.onspeechstart = () => this.h.onSpeaking?.(true);
       rec.onspeechend = () => this.h.onSpeaking?.(false);
@@ -106,6 +139,7 @@ export class Recognizer {
         }
       };
       rec.onend = () => {
+        this.flush();
         this.running = false;
         this.rec = null;
         this.h.onSpeaking?.(false);
@@ -121,7 +155,21 @@ export class Recognizer {
     }
   }
 
+  /** 기다리던 말을 확정해 보낸다 (말이 멈춤·듣기 끝·우리 음성 재생 시작) */
+  private flush(upto?: number): void {
+    clearTimeout(this.timer);
+    this.timer = undefined;
+    const text = this.pending;
+    this.pending = "";
+    if (upto !== undefined) this.done = upto;
+    if (!text || (squash(text) === squash(this.sent) && Date.now() - this.sentAt < 6000)) return;
+    this.sent = text;
+    this.sentAt = Date.now();
+    this.h.onText(text, true);
+  }
+
   private end(): void {
+    this.flush();
     const rec = this.rec;
     this.rec = null;
     this.running = false;
