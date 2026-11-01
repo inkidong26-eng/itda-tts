@@ -25,7 +25,7 @@ export function ReceivePage({ callId }: { callId: string }) {
   const [deafOnline, setDeafOnline] = useState(true);
   const [heard, setHeard] = useState<Heard[]>([]);
   const [mine, setMine] = useState<{ text: string; final: boolean } | null>(null);
-  const [mic, setMic] = useState<"off" | "auto" | "hold">("off");
+  const [mic, setMic] = useState<"off" | "auto">("off");
   const [micProblem, setMicProblem] = useState<string | null>(sttSupported() ? null : "이 폰에서는 말로 답하기가 안 돼요. 글로 답해 주세요");
   const [typing, setTyping] = useState("");
   const socket = useRef<CallConnection | null>(null);
@@ -93,6 +93,8 @@ export function ReceivePage({ callId }: { callId: string }) {
         setMicProblem(kind === "denied" ? "마이크를 허용하지 않았어요. 글로 답해 주세요" : "말로 답하기가 안 돼요. 글로 답해 주세요");
       },
     });
+    // 11/1 사용자: 말할 때마다 누르는 건 불편 → 대화를 시작하면 저절로 계속 듣는다 (이 터치 안에서 마이크 허용을 묻는다)
+    if (sttSupported()) { rec.current.startAuto(); setMic("auto"); }
   };
 
   const toggleAuto = () => {
@@ -197,19 +199,11 @@ export function ReceivePage({ callId }: { callId: string }) {
       {mine && <p className={`text-lg ${mine.final ? "font-semibold" : "text-muted"}`}>🗨️ 내 말: {mine.text}</p>}
 
       {!micProblem ? (
-        <div className="flex gap-2">
-          <button type="button"
-            onPointerDown={() => { if (mic !== "auto") { rec.current?.startHold(); setMic("hold"); } }}
-            onPointerUp={() => { if (mic === "hold") { rec.current?.stop(); setMic("off"); } }}
-            onPointerLeave={() => { if (mic === "hold") { rec.current?.stop(); setMic("off"); } }}
-            className={`min-h-[72px] flex-1 select-none rounded-2xl text-xl font-bold text-white ${mic === "hold" ? "bg-accent" : "bg-navy"}`}>
-            🎤 {mic === "hold" ? "듣는 중… (손을 떼면 보내요)" : "누르고 말하기"}
-          </button>
-          <button type="button" onClick={toggleAuto} aria-pressed={mic === "auto"}
-            className={`min-h-[72px] w-28 rounded-2xl border-2 text-base font-semibold ${mic === "auto" ? "border-brand-dark bg-teal-50" : "border-gray-400"}`}>
-            {mic === "auto" ? "✓ 자동 듣기 켜짐" : "자동 듣기"}
-          </button>
-        </div>
+        <button type="button" onClick={toggleAuto} aria-pressed={mic === "auto"}
+          className={`min-h-[72px] w-full rounded-2xl text-xl font-bold ${mic === "auto" ? "border-2 border-brand-dark bg-teal-50 text-brand-dark" : "bg-navy text-white"}`}>
+          {mic === "auto" ? "🎤 듣고 있어요 · 그냥 말씀하세요" : "🎤 눌러서 말하기 켜기"}
+          {mic === "auto" && <span className="block text-sm font-normal text-muted">잠깐 멈추려면 누르세요</span>}
+        </button>
       ) : (
         <Notice kind="info">{micProblem}</Notice>
       )}
