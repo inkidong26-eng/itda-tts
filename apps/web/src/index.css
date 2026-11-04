@@ -84,3 +84,11 @@ body {
 }
 .itda-new { animation: itda-new-flash 1.6s ease-out 1; }
 :root[data-dark] .itda-new { animation: none; }
+
+/* 캐릭터: 천천히 살짝 위아래 (움직임 줄이기를 켠 폰에서는 멈춤) */
+@keyframes itda-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.itda-bob { animation: itda-bob 3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .itda-bob { animation: none; } }

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { prefetch } from "../api/client";
 import { useDeafCall } from "../call/useDeafCall";
+import { Character } from "../components/Character";
 import { Composer, MessageList } from "../components/Conversation";
 import { EdgeGlow } from "../components/Feedback";
 import { Button, Card, HelpButton, Notice, Screen } from "../components/ui";
@@ -86,7 +87,8 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
   if (call.phase === "ended") {
     return (
       <Screen title="📞 통화가 끝났어요" footer={<Button onClick={onHome}>홈으로</Button>}>
-        <p className="text-xl">통화 시간 {clock}</p>
+        <Character pose="thanks" height={170} />
+        <p className="text-center text-xl">통화 시간 {clock}</p>
       </Screen>
     );
   }

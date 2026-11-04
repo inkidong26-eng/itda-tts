@@ -1,6 +1,7 @@
 // S7 스피커 방식 안내 (02 문서 S7, 06 문서 3절). 일반 전화 + 스피커폰 → ITDA 글이 폰 스피커로 나가 상대에게 들린다.
 // 보조 방식: "글 → 음성"만 보장, 자막 없음. 기종에 따라 소리가 작거나 안 나올 수 있어 2대 방식을 함께 안내.
 // 폰 볼륨·스피커 상태는 앱이 알 수 없으므로 상태 표시는 넣지 않는다 (안내 글만).
+import { Character } from "../components/Character";
 import { Button, Card, Screen } from "../components/ui";
 import { HELP } from "../lib/help";
 
@@ -18,6 +19,7 @@ export function SpeakerGuidePage({ onStart, onBack }: { onStart: () => void; onB
         </>
       }
     >
+      <Character pose="phone" height={130} />
       <ol className="flex flex-col gap-3">
         {STEPS.map((text, i) => (
           <li key={text} className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm">

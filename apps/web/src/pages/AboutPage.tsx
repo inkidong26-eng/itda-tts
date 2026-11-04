@@ -1,4 +1,5 @@
 // 잇다 이야기 (11 문서 1절, docs/ui/잇다_이야기.md). 개발 동기와 철학.
+import { Character } from "../components/Character";
 import { Button, Screen } from "../components/ui";
 
 export function AboutPage({ onBack }: { onBack: () => void }) {
@@ -6,6 +7,7 @@ export function AboutPage({ onBack }: { onBack: () => void }) {
     <Screen white footer={<Button variant="secondary" onClick={onBack}>← 설정으로</Button>}>
       <div className="flex flex-col gap-5">
         <img src="/logo.png" alt="ITDA" width={720} height={199} className="mx-auto h-auto w-56" />
+        <Character pose="love" height={150} />
         <p className="text-center text-base font-semibold text-muted">ITDA는 이렇게 시작되었습니다.</p>
         <p className="text-center text-2xl font-bold leading-snug text-brand-dark">"소리가 없어도, 이어집니다."</p>
         <p className="text-lg leading-relaxed">

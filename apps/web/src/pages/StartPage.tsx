@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { warmup } from "../api/client";
+import { Character } from "../components/Character";
 import { unlockAudio } from "../audio/player";
 import { Button, Screen } from "../components/ui";
 
@@ -47,6 +48,7 @@ export function StartPage({ onStart }: { onStart: () => void }) {
       }
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <Character pose="wave" who="both" height={150} bob />
         {/* 다리 로고 안에 ITDA 글자가 들어 있다 */}
         <img src="/logo.png" alt="ITDA" width={720} height={199} className="h-auto w-80 max-w-[85vw]" />
         <p className="text-2xl font-bold text-brand-dark">잇다</p>

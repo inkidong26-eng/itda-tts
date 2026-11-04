@@ -13,6 +13,7 @@ import { Recognizer, sttSupported } from "../stt/recognizer";
 import { useKeepScreenOn } from "../lib/wakeLock";
 import { detectInApp } from "../lib/inApp";
 import { InAppNotice } from "../components/InAppNotice";
+import { Character } from "../components/Character";
 
 type Heard = { msgId: string; text: string; emotion?: EmotionCode };
 
@@ -115,6 +116,7 @@ export function ReceivePage({ callId }: { callId: string }) {
     // 10/24 실제 폰 시험: 링크를 보낸 농인 본인이 자기 링크를 눌러 이 화면이 나왔다
     return (
       <Screen title="이미 대화 중인 링크예요">
+        <Character pose="sorry" who="both" height={130} />
         <p className="text-lg">이 링크로 다른 분이 먼저 들어와 있어요.</p>
         <Card className="flex flex-col gap-3">
           <p className="text-lg"><b>링크를 보낸 본인이라면</b><br />이 창을 닫고, 링크를 만든 <b>ITDA 통화 화면</b>으로 돌아가세요. 그 화면에서 대화하면 돼요.</p>
@@ -126,11 +128,12 @@ export function ReceivePage({ callId }: { callId: string }) {
   if (phase === "missing") {
     return (
       <Screen title="끝났거나 없는 대화예요">
+        <Character pose="sorry" who="both" height={130} />
         <p className="text-lg">링크가 오래되었거나 대화가 끝났어요. 보낸 분께 <b>새 링크</b>를 부탁해 주세요.</p>
       </Screen>
     );
   }
-  if (phase === "ended") return <Screen title="📞 통화가 끝났어요"><p>이용해 주셔서 고마워요.</p></Screen>;
+  if (phase === "ended") return <Screen title="📞 통화가 끝났어요"><Character pose="thanks" height={170} /><p className="text-center">이용해 주셔서 고마워요.</p></Screen>;
 
   if (phase === "intro") {
     // 안내만. 마이크 막대 같은 상태 표시는 시작 전에는 실제 신호가 없으므로 넣지 않는다
