@@ -12,8 +12,6 @@ export type Pose = "wave" | "listen" | "phone" | "sorry" | "thanks" | "love";
 /** me = 가입 때 고른 성별(모르면 여자), both = 남녀 둘이 함께 (청인 화면처럼 상대 성별을 모를 때) */
 export type Who = "me" | "m" | "f" | "both";
 
-// 수어 그림은 한 사람씩만 있다
-const ONLY: Partial<Record<Pose, "m" | "f">> = { thanks: "f", love: "m" };
 const RATIO = 0.75; // 가로 ÷ 세로 (그림은 세로 480)
 
 function Figure({ file, height, bob }: { file: string; height: number; bob: boolean }) {
@@ -29,9 +27,7 @@ function Figure({ file, height, bob }: { file: string; height: number; bob: bool
 
 export function Character({ pose, who = "me", height = 160, bob = false }: { pose: Pose; who?: Who; height?: number; bob?: boolean }) {
   if (!CHARACTERS_ON) return null;
-  const only = ONLY[pose];
-  const people: ("m" | "f")[] = only ? [only]
-    : who === "both" ? ["f", "m"]
+  const people: ("m" | "f")[] = who === "both" ? ["f", "m"]
     : who === "me" ? [loadSession()?.gender === "m" ? "m" : "f"]
     : [who];
   return (
