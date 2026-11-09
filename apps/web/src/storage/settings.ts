@@ -34,12 +34,12 @@ export const THEMES = [
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"];
 
-export type ViewSettings = { font: FontStep; family: FontId; theme: ThemeId; showTop: boolean; vibrate: boolean; glow: boolean };
+export type ViewSettings = { font: FontStep; family: FontId; theme: ThemeId; showTop: boolean; flipTop: boolean; vibrate: boolean; glow: boolean };
 
 const KEY = "itda.view";
 // 테두리 빛은 아이폰 기본(진동이 안 되므로), 안드로이드는 켜서 쓸 수 있다 (05 문서 6절)
 const isIOS = () => typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
-const defaults = (): ViewSettings => ({ font: 1, family: "pretendard", theme: "basic", showTop: true, vibrate: true, glow: isIOS() });
+const defaults = (): ViewSettings => ({ font: 1, family: "pretendard", theme: "basic", showTop: true, flipTop: true, vibrate: true, glow: isIOS() });
 
 export function loadView(): ViewSettings {
   try {
@@ -55,6 +55,8 @@ export function loadView(): ViewSettings {
       family: FONTS.some((f) => f.id === data.family) ? data.family : d.family,
       theme: THEMES.some((t) => t.id === data.theme) ? data.theme : d.theme,
       showTop: bool(data.showTop, d.showTop),
+      // 위쪽 글 뒤집기: 폰을 탁자에 놓고 마주 보면 켬(기본), 키오스크처럼 같은 쪽에 서면 끔
+      flipTop: bool(data.flipTop, d.flipTop),
       vibrate: bool(data.vibrate, d.vibrate),
       glow: bool(data.glow, d.glow),
     };

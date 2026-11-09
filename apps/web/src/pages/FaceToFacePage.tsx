@@ -192,8 +192,14 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
     <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
       <EdgeGlow enabled={view.glow} colorFor={colorFor} />
       {view.showTop && !speaker && (
-        <section aria-label="상대방이 읽는 쪽" className="flex min-h-0 basis-[32%] [@media(max-height:700px)]:basis-[22%] rotate-180 flex-col justify-center overflow-hidden border-t-8 bg-blue-50 px-4 py-3" style={{ borderColor: edge }}>
-          {/* 180° 돌려 놓았으므로 border-t 가 화면에서는 위·아래 경계선(가운데)에 보인다 */}
+        <section aria-label="상대방이 읽는 쪽" className={`relative flex min-h-0 basis-[32%] [@media(max-height:700px)]:basis-[22%] flex-col justify-center overflow-hidden bg-blue-50 px-4 py-3 ${view.flipTop ? "rotate-180 border-t-8" : "border-b-8"}`} style={{ borderColor: edge }}>
+          {/* 뒤집으면(180°) border-t 가, 바로 세우면 border-b 가 화면 가운데 경계선에 보인다 */}
+          {/* 방향 바꾸기: 폰을 탁자에 놓고 마주 보면 뒤집고, 키오스크처럼 같은 쪽에 서면 바로 세운다 */}
+          <button type="button" onClick={() => onView({ ...view, flipTop: !view.flipTop })}
+            aria-label={view.flipTop ? "위쪽 글 바로 세우기" : "위쪽 글 뒤집기"}
+            className="absolute right-1.5 top-1.5 min-h-[44px] rounded-lg border-2 border-gray-400 bg-white/90 px-2 text-base font-semibold text-ink">
+            🔄 방향
+          </button>
           {foreign && <p className="mb-1 text-center text-base font-semibold text-muted">{langInfo(partner).flag} {langInfo(partner).native}</p>}
           <p className={`text-center font-bold leading-snug text-ink ${topText.length > 40 ? "text-2xl" : "text-3xl"}`}>
             {topMessage?.emotion && <span aria-hidden="true">{emotionInfo(topMessage.emotion.emotion).icon} </span>}

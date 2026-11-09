@@ -104,12 +104,12 @@ describe("화면 설정", () => {
       getItem: (k: string) => data.get(k) ?? null,
       setItem: (k: string, v: string) => void data.set(k, v),
     });
-    const base = { font: 1, family: "pretendard", theme: "basic", showTop: true, vibrate: true, glow: false };
+    const base = { font: 1, family: "pretendard", theme: "basic", showTop: true, flipTop: true, vibrate: true, glow: false };
     expect(loadView()).toEqual(base);
-    const mine = { font: 4, family: "jua", theme: "lowvision", showTop: false, vibrate: false, glow: true } as const;
+    const mine = { font: 4, family: "jua", theme: "lowvision", showTop: false, flipTop: false, vibrate: false, glow: true } as const;
     saveView(mine);
     expect(loadView()).toEqual(mine);
-    data.set("itda.view", '{"font":9,"family":"없음","theme":"없음","showTop":"x","v":2}');
+    data.set("itda.view", '{"font":9,"family":"없음","theme":"없음","showTop":"x","flipTop":"x","v":2}');
     expect(loadView()).toEqual(base);
   });
 
