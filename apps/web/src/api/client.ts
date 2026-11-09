@@ -1,7 +1,9 @@
 // API 서버 호출 (07 문서 5절). 모든 요청에 제한 시간을 둔다.
 
 const BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "/api";
-const TIMEOUT_MS = 8000; // 서버는 4초 안에 답한다
+const TIMEOUT_MS = 8000;
+// 목소리 만들기만 더 오래 기다린다: 서버가 긴 문장도 내 목소리로 만들 때까지 기다리다(TTS_TOTAL_TIMEOUT_MS, 12초) 넘으면 비상 음성
+const SPEAK_TIMEOUT_MS = 15000;
 
 export type VoiceCard = {
   easy?: string;
@@ -38,9 +40,9 @@ function messageFor(status: number): string {
   return "문제가 생겼어요. 다시 해 주세요";
 }
 
-async function request<T>(method: string, path: string, token?: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, token?: string, body?: unknown, timeoutMs = TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${BASE}${path}`, {
       method,
@@ -103,7 +105,7 @@ export type TtsResult = {
 export type EmotionPayload = { emotion: string; intensity: number; tremor: number };
 
 export function speak(token: string, text: string, voiceId: string, emotion?: EmotionPayload) {
-  return request<TtsResult>("POST", "/tts", token, { text, voiceId, ...(emotion ? { emotion } : {}) });
+  return request<TtsResult>("POST", "/tts", token, { text, voiceId, ...(emotion ? { emotion } : {}) }, SPEAK_TIMEOUT_MS);
 }
 
 /** 글을 쓰는 중 미리 만들기: [보내기]를 누르기 전에 목소리를 만들어 둔다. 실패해도 조용히 (보내기에는 영향 없음) */
