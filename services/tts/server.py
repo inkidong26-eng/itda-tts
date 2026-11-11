@@ -23,9 +23,10 @@ WARMUP_TEXT = "안녕하세요."
 
 
 def load_engine():
-    from engine import QwenEngine
+    from engine import make_engine
 
-    return QwenEngine()
+    # TTS_ENGINE=fast 일 때만 빠른 엔진 (pod_start.sh 가 정한다). 없거나 다른 값이면 원래 엔진
+    return make_engine(os.getenv("TTS_ENGINE", "qwen"))
 
 
 @asynccontextmanager

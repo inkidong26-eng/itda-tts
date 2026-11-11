@@ -42,10 +42,34 @@ until ls $TTS_VOICES_DIR/*/meta.json >/dev/null 2>&1; do
   echo "목소리 폴더($TTS_VOICES_DIR)를 기다리는 중…"; sleep 30
 done
 
+# 엔진 고르기 (11/11): /workspace/tts_engine 파일에 fast 라고 적혀 있으면 빠른 엔진(venv_fast).
+# 파일이 없으면 원래 엔진 그대로. 되돌리기: rm /workspace/tts_engine 후 Pod 다시 켜기
+ENGINE=$(tr -d '[:space:]' < $W/tts_engine 2>/dev/null || true)
+VENV=$W/venv
+if [ "$ENGINE" = "fast" ]; then
+  if [ -x $W/venv_fast/bin/python ]; then
+    # 서버에 필요한 것만 더한다 (transformers 는 건드리지 않음: 5.15.1 고정)
+    [ -x $W/venv_fast/bin/uvicorn ] || $W/venv_fast/bin/pip install -q -r $W/itda-tts/services/tts/requirements.txt
+    VENV=$W/venv_fast
+  else
+    echo "venv_fast 가 없어 원래 엔진으로"; ENGINE=qwen
+  fi
+fi
+export TTS_ENGINE=${ENGINE:-qwen}
+
 # 음성 서버: 8000 (nginx 가 8001 로 열어 준다). 꺼지면 다시 켠다
 cd $W/itda-tts/services/tts
+fails=0
 while true; do
-  echo "$(date) 음성 서버 시작"
-  $W/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000 >> $W/tts.log 2>&1
+  echo "$(date) 음성 서버 시작 (엔진 $TTS_ENGINE)"
+  started=$(date +%s)
+  $VENV/bin/uvicorn server:app --host 0.0.0.0 --port 8000 >> $W/tts.log 2>&1
+  # 빠른 엔진이 켜지자마자 두 번 멈추면 원래 엔진으로 돌아간다 (행사 중 목소리가 아예 끊기지 않게)
+  if [ "$TTS_ENGINE" = "fast" ] && [ $(( $(date +%s) - started )) -lt 600 ]; then
+    fails=$((fails + 1))
+    if [ $fails -ge 2 ]; then
+      echo "$(date) 빠른 엔진이 두 번 멈춰서 원래 엔진으로 바꿈"; VENV=$W/venv; export TTS_ENGINE=qwen
+    fi
+  fi
   echo "$(date) 음성 서버가 멈춰서 10초 뒤 다시 켬"; sleep 10
 done

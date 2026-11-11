@@ -99,3 +99,74 @@ def test_load_references_skips_excluded_voices(tmp_path):
     # 제외(❌)는 빠지고, 아직 검수 전(None)은 쓸 수 있게, 파일이 없는 감정(joy)은 없음
     assert sorted(refs) == [("v20f1", "calm"), ("v30f1", "calm")]
     assert refs[("v20f1", "calm")][2] == "안녕하세요"
+
+
+def make_voice(root, vid, emotions=("calm",)):
+    d = root / vid
+    d.mkdir()
+    meta = {"id": vid, "emotions": {e: {"text": f"{e} 기준"} for e in emotions}}
+    (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    for e in emotions:
+        sf.write(d / f"{e}.wav", np.zeros(2400, dtype=np.float32), 24000)
+
+
+@pytest.fixture
+def fast(monkeypatch, tmp_path):
+    """GPU 없이 빠른 엔진 시험: torch·faster_qwen3_tts 를 가짜로 바꿔 넣는다."""
+    import sys
+    import types
+
+    calls = []
+
+    class FakeModel:
+        @classmethod
+        def from_pretrained(cls, model_id, device, dtype):
+            return cls()
+
+        def generate_voice_clone(self, text, language, ref_audio, ref_text):
+            calls.append((text, language, ref_audio, ref_text))
+            return [np.zeros(1200, dtype=np.float32)], 24000
+
+    torch = types.SimpleNamespace(bfloat16="bf16", manual_seed=lambda s: None,
+                                  cuda=types.SimpleNamespace(get_device_name=lambda i: "fake-gpu"))
+    monkeypatch.setitem(sys.modules, "torch", torch)
+    monkeypatch.setitem(sys.modules, "faster_qwen3_tts", types.SimpleNamespace(FasterQwen3TTS=FakeModel))
+    make_voice(tmp_path, "v20f1", ("calm", "joy"))
+    make_voice(tmp_path, "v30m1")
+    monkeypatch.setenv("TTS_VOICES_DIR", str(tmp_path))
+    from engine import make_engine
+
+    eng = make_engine("fast")
+    return eng, calls, tmp_path
+
+
+def test_fast_engine_warms_up_then_clones_with_reference(fast):
+    eng, calls, root = fast
+    assert eng.voices == ["v20f1", "v30m1"] and eng.gpu == "fake-gpu"
+    assert len(calls) == 2  # 손님 말 전에 준비 운동 두 번
+    audio, sr = eng.clone("v20f1", "joy", "안녕하세요", 3)
+    assert sr == 24000 and audio.dtype == np.float32
+    assert calls[-1] == ("안녕하세요", "Korean", str(root / "v20f1" / "joy.wav"), "joy 기준")
+
+
+def test_fast_engine_falls_back_to_calm_and_rejects_unknown_voice(fast):
+    eng, calls, root = fast
+    eng.clone("v30m1", "sad", "고마워요", 1)
+    assert calls[-1][2] == str(root / "v30m1" / "calm.wav")
+    with pytest.raises(KeyError):
+        eng.clone("v99x9", "calm", "안녕", 1)
+
+
+def test_server_uses_original_engine_unless_fast(monkeypatch):
+    import engine
+
+    picked = []
+    monkeypatch.setattr(engine, "QwenEngine", lambda: picked.append("qwen"))
+    monkeypatch.setattr(engine, "FastEngine", lambda: picked.append("fast"))
+    monkeypatch.delenv("TTS_ENGINE", raising=False)
+    server.load_engine()
+    monkeypatch.setenv("TTS_ENGINE", "fast")
+    server.load_engine()
+    monkeypatch.setenv("TTS_ENGINE", "이상한값")
+    server.load_engine()
+    assert picked == ["qwen", "fast", "qwen"]
