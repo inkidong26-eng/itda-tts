@@ -14,6 +14,7 @@ import { useKeepScreenOn } from "../lib/wakeLock";
 import { detectInApp } from "../lib/inApp";
 import { InAppNotice } from "../components/InAppNotice";
 import { Character } from "../components/Character";
+import { MaskedText } from "../components/MaskedText";
 
 type Heard = { msgId: string; text: string; emotion?: EmotionCode };
 
@@ -199,7 +200,7 @@ export function ReceivePage({ callId }: { callId: string }) {
         </p>
       </section>
 
-      {mine && <p className={`text-lg ${mine.final ? "font-semibold" : "text-muted"}`}>🗨️ 내 말: {mine.text}</p>}
+      {mine && <p className={`text-lg ${mine.final ? "font-semibold" : "text-muted"}`}>🗨️ 내 말: <MaskedText text={mine.text} /></p>}
 
       {!micProblem ? (
         <button type="button" onClick={toggleAuto} aria-pressed={mic === "auto"}

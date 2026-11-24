@@ -6,6 +6,7 @@ import { DEFAULT_FAVORITES } from "../lib/favorites";
 import { EmotionChips, finalEmotion, type Manual } from "./EmotionChips";
 import type { SignalBus } from "../feedback/bus";
 import { SpeakingBar } from "./Feedback";
+import { MaskedText } from "./MaskedText";
 import { Button } from "./ui";
 
 export type LiveState = "sending" | "queued" | "playing" | "done" | "failed";
@@ -72,7 +73,7 @@ export function MessageList({ messages, live, onRetry, bus, failText }: {
               : `max-w-[94%] rounded-2xl border-2 border-[#0e6582] bg-white px-4 py-3 text-2xl font-semibold leading-snug text-ink shadow-sm ${m.at > openedAt.current ? "itda-new" : ""}`}
               style={emo ? { borderLeft: `8px solid ${emo.color}` } : undefined}>
               {emo && <span aria-label={`감정 ${emo.label}`} className="mr-1">{emo.icon}</span>}
-              {m.text}
+              {m.role === "other" ? <MaskedText text={m.text} /> : m.text}
               {m.emotion && m.emotion.tremor > 0 && <span aria-label="떨림" className="ml-1">{"〰".repeat(m.emotion.tremor)}</span>}
             </p>
             {m.alt && <p className="mt-1 max-w-[85%] text-base text-muted" aria-label={m.role === "me" ? "통역된 글" : "원문"}>🌐 {m.alt}</p>}

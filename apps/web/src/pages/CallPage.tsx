@@ -13,6 +13,7 @@ import { useVibration } from "../feedback/hooks";
 import type { Session } from "../storage/local";
 import type { ViewSettings } from "../storage/settings";
 import { useKeepScreenOn } from "../lib/wakeLock";
+import { MaskedText } from "../components/MaskedText";
 
 function useClock(since: number | null): string {
   const [now, setNow] = useState(Date.now());
@@ -129,7 +130,7 @@ export function CallPage({ session, view, onHome, onSpeaker }: {
           failText="⚠️ 상대 폰에서 소리가 나지 않았어요" onRetry={(m) => call.send(m.text, undefined, m)} />
       </div>
       <p className="min-h-[1.5em] text-base text-muted" aria-live="polite">
-        {call.hearingSpeaking || call.interim ? `🎤 상대가 말하는 중${call.interim ? `: ${call.interim}` : ""}` : ""}
+        {call.interim ? <>🎤 상대가 말하는 중: <MaskedText text={call.interim} /></> : call.hearingSpeaking ? "🎤 상대가 말하는 중" : ""}
       </p>
       <Composer recent={recent} onSend={(t, e) => call.send(t, e)}
         onDraft={session.voiceId ? (t) => prefetch(session.token, t, session.voiceId!) : undefined} />
