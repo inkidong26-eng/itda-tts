@@ -6,6 +6,7 @@ import { CallPage } from "./pages/CallPage";
 import { FaceToFacePage } from "./pages/FaceToFacePage";
 import { HomePage, SoonPage } from "./pages/HomePage";
 import { NamePage } from "./pages/NamePage";
+import { QuickStartPage } from "./pages/QuickStartPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SpeakerGuidePage } from "./pages/SpeakerGuidePage";
 import { StartPage } from "./pages/StartPage";
@@ -16,6 +17,7 @@ import { type ViewSettings, loadView, saveView } from "./storage/settings";
 
 type View =
   | { name: "start" }
+  | { name: "quick" }
   | { name: "name" }
   | { name: "ageGender" }
   | { name: "voice"; changing?: boolean }
@@ -28,15 +30,17 @@ type View =
   | { name: "about" }
   | { name: "soon"; what: string };
 
-function firstView(session: Session | null): View {
+function firstView(session: Session | null, quick: boolean): View {
+  // 기관 창구 QR(/q): 이미 쓰는 사람은 바로 마주보고 대화, 처음 온 사람은 남녀만 고르기
+  if (quick) return session?.voiceId ? { name: "face" } : { name: "quick" };
   if (session?.voiceId) return { name: "home" }; // 다시 오면 홈으로 바로
   if (session) return { name: "voice" };
   return { name: "start" };
 }
 
-export default function App() {
+export default function App({ quick = false }: { quick?: boolean }) {
   const [session, setSession] = useState<Session | null>(loadSession);
-  const [view, setView] = useState<View>(() => firstView(loadSession()));
+  const [view, setView] = useState<View>(() => firstView(loadSession(), quick));
   const [draftName, setDraftName] = useState("");
   const [viewSettings, setViewSettings] = useState<ViewSettings>(loadView);
 
@@ -74,6 +78,8 @@ export default function App() {
   switch (view.name) {
     case "start":
       return <StartPage onStart={() => setView({ name: "name" })} />;
+    case "quick":
+      return <QuickStartPage onReady={(s) => { keep(s); setView({ name: "face" }); }} />;
     case "name":
       return (
         <NamePage initial={draftName} onBack={() => setView({ name: "start" })}

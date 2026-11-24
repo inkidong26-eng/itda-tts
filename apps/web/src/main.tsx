@@ -9,6 +9,8 @@ import { autoLeaveUrl } from "./lib/inApp";
 
 // 청인 받는 화면: /c/{방번호} — 가입·설치 없이 바로 (규칙 6)
 const callMatch = window.location.pathname.match(/^\/c\/([A-Za-z0-9_-]+)\/?$/);
+// 기관 창구 QR: /q (뒤에 기관 표시가 붙어도 된다, 예: /q/bank01)
+const quick = /^\/q(\/[A-Za-z0-9_-]*)?\/?$/.test(window.location.pathname);
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css"; // 기본 글씨체 (필요한 글자만 받음)
 import "./index.css";
 import { applyAppearance } from "./storage/appearance";
@@ -26,6 +28,6 @@ applyAppearance(loadView());
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     {callMatch ? <ReceivePage callId={callMatch[1]} /> : window.location.pathname.startsWith("/dev/audio") ? <DevAudioPage />
-      : window.location.pathname.startsWith("/admin") ? <AdminPage /> : leave ? <InAppGate stayKey={STAY_KEY} app={<App />} /> : <App />}
+      : window.location.pathname.startsWith("/admin") ? <AdminPage /> : leave ? <InAppGate stayKey={STAY_KEY} app={<App quick={quick} />} /> : <App quick={quick} />}
   </StrictMode>,
 );
