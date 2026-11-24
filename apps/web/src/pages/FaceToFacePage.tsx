@@ -10,6 +10,7 @@ import type { Turn } from "../emotion/context";
 import { emotionInfo, type EmotionResult } from "../emotion/types";
 import { Button, HelpButton, Notice } from "../components/ui";
 import { HELP } from "../lib/help";
+import { MaskedText } from "../components/MaskedText";
 import { hasTranslateConsent, langInfo, LANGUAGES, type LangCode, saveTranslateConsent, TRANSLATE_CONSENT } from "../lib/languages";
 import { createOrdered } from "../lib/ordered";
 import { speechText } from "../lib/speechText";
@@ -275,7 +276,7 @@ export function FaceToFacePage({ session, view, onView, onHome, onAuthLost, spea
               {captions.problem === "unsupported" ? "이 폰(브라우저)은 자막이 안 돼요. 상대에게 글로 써 달라고 해 주세요"
                 : captions.problem === "denied" ? "마이크를 허용해 주세요 (주소창 자물쇠 → 마이크)"
                 : captions.problem === "other" ? "자막이 멈췄어요. 아래 버튼을 다시 눌러 주세요"
-                : captions.interim ? `🎤 ${captions.interim}` : captions.on && captions.speaking ? "🎤 상대가 말하는 중…" : ""}
+                : captions.interim ? <>🎤 <MaskedText text={captions.interim} /></> : captions.on && captions.speaking ? "🎤 상대가 말하는 중…" : ""}
             </p>
             {captions.problem !== "unsupported" && (
               <button type="button" onClick={captions.toggle} aria-pressed={captions.on}
